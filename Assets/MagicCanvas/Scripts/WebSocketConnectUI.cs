@@ -11,23 +11,29 @@ public class WebSocketConnectUI : MonoBehaviour
     public InputField portInput;
     public Button connectButton;
 
+    private string ip = "127.0.0.1";
+    private string port = "9999";
     [Header("連線接收器")]
     public WebSocketMessageReceiverAsync receiver;
 
     private void Start()
     {
         // 若要預設可填在這裡（目前已註解）
-        // ipInput.text = "127.0.0.1";
-        // portInput.text = "9999";
+        ipInput.text = "127.0.0.1";
+        portInput.text = "9999";
 
-        connectButton.onClick.AddListener(OnClickConnect);
+        //connectButton.onClick.AddListener(OnClickConnect);
     }
-
-    private void OnClickConnect()
+    public void OnInputFieldValueChanged()
+    {
+        ipInput.text = ip;
+        ipInput.text = port;
+    }
+    public void OnClickConnect()
     {
         message.text = "";
-        string ip = ipInput.text.Trim();
-        string portText = portInput.text.Trim();
+        string ip = this.ip;
+        string portText = this.port;
 
         // IP 合法性檢查
         if (!IPAddress.TryParse(ip, out _))

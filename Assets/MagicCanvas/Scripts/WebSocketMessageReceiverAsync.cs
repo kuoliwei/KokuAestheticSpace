@@ -1,5 +1,6 @@
 using UnityEngine;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine.Events;
 using System;
 using System.Collections.Concurrent;
@@ -27,6 +28,17 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
     private int messagesProcessedThisSecond = 0;
     private float messageTimer = 0f;
 
+    [Header("是否允許處理 Pose 資料")]
+    public bool CanReceivePoseMessage = true;
+
+    [System.Serializable]
+    public class PoseFrameEvent : UnityEvent<PoseTypes.FrameSample> { }
+
+    [Header("接收 Pose 資料事件")]
+    public PoseFrameEvent OnPoseFrameReceived = new();
+
+    private readonly ConcurrentQueue<PoseTypes.FrameSample> poseMainThreadQueue = new();
+
     private void Start()
     {
         if (webSocketClient != null)
@@ -34,7 +46,8 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
             webSocketClient.OnMessageReceive.AddListener(message =>
             {
                 //receivedCountThisSecond++;
-                ReceiveMessage(message);
+                //ReceiveMessage(message);
+                ReceiveSkeletonMessage(message);
             });
             webSocketClient.OnConnected.AddListener(OnWebSocketConnected);
             webSocketClient.OnConnectionError.AddListener(webSocketConnectUI.OnConnectionFaild);
@@ -79,7 +92,16 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
                 processed++;
             }
         }
-
+        // 取出 Pose 事件（不限制筆數）
+        {
+            int processedPose = 0;
+            while (poseMainThreadQueue.TryDequeue(out var frame))
+            {
+                OnPoseFrameReceived.Invoke(frame);
+                processedPose++;
+            }
+            // 需要監控時可印出 processedPose
+        }
         // 監控
         messageTimer += Time.deltaTime;
         if (messageTimer >= 1f)
@@ -122,6 +144,87 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"Can't deserialize message: {messageContent}. Error: {e.Message}");
+        }
+    }
+    private void ReceiveSkeletonMessage(string messageContent)
+    {
+        //Debug.Log("[ReceiveMessage] 函式有被呼叫 (Pose)");
+
+        if (!CanReceivePoseMessage)
+        {
+            Debug.LogWarning("忽略訊息：CanReceivePoseMessage 為 false");
+            return;
+        }
+
+        try
+        {
+            // 格式: { "<frameIndex>": [ [ [x,y,z,conf],...17點 ],  [ ...人物1... ] ] }
+            var root = JObject.Parse(messageContent);
+
+            // 允許一次只送一個 frame（常見），就抓第一個屬性
+            var enumerator = root.Properties().GetEnumerator();
+            if (!enumerator.MoveNext())
+            {
+                Debug.LogWarning("[ReceiveMessage] JSON 解析成功但沒有任何 frame key");
+                return;
+            }
+
+            var frameProp = enumerator.Current;
+            if (!int.TryParse(frameProp.Name, out int frameIndex))
+            {
+                Debug.LogError($"[ReceiveMessage] frame key 無法轉成 int: {frameProp.Name}");
+                return;
+            }
+
+            var personsArray = frameProp.Value as JArray;
+            if (personsArray == null)
+            {
+                Debug.LogError("[ReceiveMessage] frame value 不是陣列 (persons)");
+                return;
+            }
+
+            var frame = new PoseTypes.FrameSample(frameIndex);
+
+            for (int personId = 0; personId < personsArray.Count; personId++)
+            {
+                var personJoints = personsArray[personId] as JArray;
+                if (personJoints == null)
+                {
+                    Debug.LogWarning($"[ReceiveMessage] 人物 {personId} joints 不是陣列，略過");
+                    continue;
+                }
+
+                var person = new PoseTypes.PersonSkeleton();
+
+                // 期望固定 17 個關節
+                int jointCount = Math.Min(personJoints.Count, PoseTypes.PoseSchema.JointCount);
+                for (int j = 0; j < jointCount; j++)
+                {
+                    var jArr = personJoints[j] as JArray;
+                    if (jArr == null || jArr.Count < 4)
+                    {
+                        // 不拋錯，給預設 0
+                        continue;
+                    }
+
+                    float x = jArr[0]!.Value<float>();
+                    float y = jArr[1]!.Value<float>();
+                    float z = jArr[2]!.Value<float>();
+                    float conf = jArr[3]!.Value<float>();
+
+                    person.joints[j] = new PoseTypes.Joint(x, y, z, conf);
+                }
+
+                frame.persons.Add(person);
+            }
+
+            // 丟到主執行緒事件佇列
+            poseMainThreadQueue.Enqueue(frame);
+            //Debug.Log($"[ReceiveMessage] Pose 解析成功：frame={frameIndex}, persons={frame.persons.Count}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ReceiveMessage] 解析 Pose JSON 失敗。Error: {e.Message}\n內容: {messageContent}");
         }
     }
 

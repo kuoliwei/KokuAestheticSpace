@@ -10,7 +10,6 @@ public class BrushDataProcessor : MonoBehaviour
     public bool isRevealing = false;
     public void HandleBrushData(List<BrushData> dataList)
     {
-
         List<Vector2> screenPosList = new List<Vector2>(); // [新增] 收集所有手座標的螢幕位置
         foreach (var data in dataList)
         {

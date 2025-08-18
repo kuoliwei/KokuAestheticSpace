@@ -3,15 +3,33 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
+using UnityEngine.UI;
 
 public class ImageStyleTransferHandler : MonoBehaviour
 {
-    public string ipAddress = "http://ipaddress"; // API 的 IP 地址
+    [Header("Server")]
+    public string ipAddress = "https://67f89904b106.ngrok-free.app"; // 後端 Base URL（不要結尾斜線）
+
+    [Header("Polling")]
+    [Tooltip("是否使用同事版協議（不帶 task_id 的全域輪詢）")]
+    public bool pollWithoutTaskId = true;
+    [Tooltip("輪詢間隔秒數")]
+    public float pollIntervalSeconds = 0.2f;
+    [Tooltip("進度 100% 後延遲取得圖片的秒數")]
+    public float getImageDelaySeconds = 1.0f;
+
+    [SerializeField] private InputField photoUrlInput;
     private string taskId = null;
     private string imageUrl = null;
-    private const float RequestTimeout = 10f; // 超時秒數
+    private const float RequestTimeout = 10f;
 
-    // 1. 發送風格化請求
+    public void OnInputFieldValueChanged()
+    {
+        ipAddress = photoUrlInput.text;
+        Debug.Log($"ipAddress:{ipAddress}");
+    }
+    // ===== 1) 發送風格化請求 =====
+    // 與你原本一致：傳 Base64 + style，後端若同時也支援 prompt，可再自行擴充
     public IEnumerator SendStyleRequest(string imageBase64, string style, Action<string> onComplete)
     {
         string url = $"{ipAddress}/comfyui/uploadimage2style";
@@ -30,14 +48,15 @@ public class ImageStyleTransferHandler : MonoBehaviour
 
             yield return SendRequestWithTimeout(request, RequestTimeout);
 
-            Debug.Log($"[SendStyleRequest] 回應原始文字: {request.downloadHandler.text}");
+            var rawText = request.downloadHandler != null ? request.downloadHandler.text : null;
+            Debug.Log($"[SendStyleRequest] 回應原始文字: {rawText}");
 
             if (request.result == UnityWebRequest.Result.Success)
             {
                 try
                 {
-                    var responseJson = JsonConvert.DeserializeObject<TaskResponse>(request.downloadHandler.text);
-                    taskId = responseJson.task_id;
+                    var responseJson = JsonConvert.DeserializeObject<TaskResponse>(rawText);
+                    taskId = responseJson?.task_id;
                     Debug.Log($"[SendStyleRequest] 任務建立成功，TaskID={taskId}");
                     onComplete?.Invoke(taskId);
                 }
@@ -55,24 +74,18 @@ public class ImageStyleTransferHandler : MonoBehaviour
         }
     }
 
-    // 2. 檢查進度
+    // ===== 2) 檢查進度（改成同事版協議：不帶 task_id）=====
     public IEnumerator CheckProgress(Action<float> onProgressUpdate, Action onComplete)
     {
-        if (string.IsNullOrEmpty(taskId))
-        {
-            Debug.LogError("[CheckProgress] Task ID 無效，無法檢查進度。");
-            yield break;
-        }
-
         string url = $"{ipAddress}/comfyui/uploadimagecheck";
-        Debug.Log($"[CheckProgress] 開始檢查進度，URL={url}, TaskID={taskId}");
+        Debug.Log($"[CheckProgress] 開始檢查進度，URL={url}, 當前 TaskID={taskId}");
 
         while (true)
         {
-            var requestBody = new { task_id = taskId };
-            string jsonData = JsonConvert.SerializeObject(requestBody);
-
-            Debug.Log($"[CheckProgress] 發送查詢 Body={jsonData}");
+            string jsonData =
+                pollWithoutTaskId
+                ? "{}"
+                : JsonConvert.SerializeObject(new { task_id = taskId });
 
             using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
             {
@@ -81,23 +94,31 @@ public class ImageStyleTransferHandler : MonoBehaviour
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", "application/json");
 
+                Debug.Log($"[CheckProgress] 發送查詢 Body={jsonData}");
                 yield return SendRequestWithTimeout(request, RequestTimeout);
 
-                Debug.Log($"[CheckProgress] 原始回應: {request.downloadHandler.text}");
+                var raw = request.downloadHandler != null ? request.downloadHandler.text : null;
+                Debug.Log($"[CheckProgress] 原始回應: {raw}");
 
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     try
                     {
-                        var progressResponse = JsonConvert.DeserializeObject<ProgressResponse>(request.downloadHandler.text);
-                        Debug.Log($"[CheckProgress] Progress={progressResponse.progress}");
-                        onProgressUpdate?.Invoke(progressResponse.progress);
-
-                        if (progressResponse.progress >= 100f)
+                        var progressResponse = JsonConvert.DeserializeObject<ProgressResponse>(raw);
+                        // 同事版協議：以 type == "Style-Transfer" 為目標事件
+                        if (progressResponse != null &&
+                            (string.IsNullOrEmpty(progressResponse.type) || progressResponse.type == "Style-Transfer"))
                         {
-                            Debug.Log("[CheckProgress] 已達 100%，進度完成");
-                            onComplete?.Invoke();
-                            break;
+                            float p = progressResponse.progress;
+                            onProgressUpdate?.Invoke(p);
+                            Debug.Log($"[CheckProgress] Progress={p}");
+
+                            if (p >= 100f)
+                            {
+                                Debug.Log("[CheckProgress] 已達 100%，進度完成");
+                                onComplete?.Invoke();
+                                yield break;
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -112,21 +133,24 @@ public class ImageStyleTransferHandler : MonoBehaviour
                     yield break;
                 }
             }
-            yield return new WaitForSeconds(1);
+
+            yield return new WaitForSeconds(pollIntervalSeconds);
         }
     }
 
-    // 3. 下載生成的圖片
+    // ===== 3) 下載生成的圖片（同事版：status/url，且延遲 getImageDelaySeconds）=====
     public IEnumerator DownloadImage(Action<Texture2D> onImageDownloaded)
     {
+        if (getImageDelaySeconds > 0f)
+            yield return new WaitForSeconds(getImageDelaySeconds);
+
         if (string.IsNullOrEmpty(taskId))
         {
-            Debug.LogError("Task ID 無效，無法下載圖片。");
-            yield break;
+            Debug.LogWarning("[DownloadImage] Task ID 為空，仍會嘗試依同事版協議取得圖片（部分後端不強制使用 task_id）");
         }
 
         string url = $"{ipAddress}/comfyui/getimage";
-        var requestBody = new { task_id = taskId };
+        var requestBody = new { task_id = taskId }; // 同事版仍保留 task_id 欄位
         string jsonData = JsonConvert.SerializeObject(requestBody);
 
         using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
@@ -137,60 +161,66 @@ public class ImageStyleTransferHandler : MonoBehaviour
             request.SetRequestHeader("Content-Type", "application/json");
 
             Debug.Log($"[DownloadImage] 發送請求到 {url}，Body={jsonData}");
-
             yield return SendRequestWithTimeout(request, RequestTimeout);
+
+            var raw = request.downloadHandler != null ? request.downloadHandler.text : null;
+            Debug.Log($"[DownloadImage] 原始回應: {raw}");
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                // 打印原始回應
-                Debug.Log($"[DownloadImage] 原始回應: {request.downloadHandler.text}");
-
-                var downloadResponse = JsonConvert.DeserializeObject<DownloadResponse>(request.downloadHandler.text);
-
-                if (downloadResponse == null)
+                GetImageResponse res = null;
+                try { res = JsonConvert.DeserializeObject<GetImageResponse>(raw); }
+                catch (Exception ex)
                 {
-                    Debug.LogError("[DownloadImage] 無法解析回應 JSON！");
+                    Debug.LogError($"[DownloadImage] 無法解析回應 JSON：{ex}");
+                    onImageDownloaded?.Invoke(null);
                     yield break;
                 }
 
-                imageUrl = downloadResponse.url;
-                Debug.Log($"[DownloadImage] 後端回傳圖片網址: {imageUrl}");
-
-                if (string.IsNullOrEmpty(imageUrl))
+                if (res != null && res.status == "Finish" && !string.IsNullOrEmpty(res.url))
                 {
-                    Debug.LogError("[DownloadImage] 後端回傳的 URL 為空！");
-                    yield break;
+                    imageUrl = res.url;
+
+                    // 手動替換內網域名為 ngrok 外網域名
+                    imageUrl = imageUrl.Replace(
+                        "http://192.168.50.160:3000",
+                        "https://67f89904b106.ngrok-free.app"
+                    );
+                    Debug.Log($"[DownloadImage] 下載圖片 URL: {imageUrl}");
+
+                    using (UnityWebRequest imageRequest = UnityWebRequestTexture.GetTexture(imageUrl))
+                    {
+                        Debug.Log($"[DownloadImage] 嘗試下載圖片: {imageUrl}");
+                        yield return imageRequest.SendWebRequest();
+
+                        if (imageRequest.result == UnityWebRequest.Result.Success)
+                        {
+                            Texture2D texture = DownloadHandlerTexture.GetContent(imageRequest);
+                            Debug.Log("[DownloadImage] 成功下載圖片並轉換為 Texture2D");
+                            onImageDownloaded?.Invoke(texture);
+                        }
+                        else
+                        {
+                            Debug.LogError($"[DownloadImage] 下載圖片失敗，錯誤: {imageRequest.error}");
+                            onImageDownloaded?.Invoke(null);
+                        }
+                    }
                 }
-
-                using (UnityWebRequest imageRequest = UnityWebRequestTexture.GetTexture(imageUrl))
+                else
                 {
-                    Debug.Log($"[DownloadImage] 嘗試下載圖片: {imageUrl}");
-                    yield return imageRequest.SendWebRequest();
-
-                    if (imageRequest.result == UnityWebRequest.Result.Success)
-                    {
-                        Texture2D texture = DownloadHandlerTexture.GetContent(imageRequest);
-                        Debug.Log("[DownloadImage] 成功下載圖片並轉換為 Texture2D");
-                        onImageDownloaded?.Invoke(texture);
-                    }
-                    else
-                    {
-                        Debug.LogError($"[DownloadImage] 下載圖片失敗，錯誤: {imageRequest.error}");
-                        Debug.LogError($"[DownloadImage] 嘗試存取的 URL: {imageUrl}");
-                        onImageDownloaded?.Invoke(null);
-                    }
+                    Debug.LogError($"[DownloadImage] 狀態不正確或缺少 url，status={res?.status}, url={res?.url}");
+                    onImageDownloaded?.Invoke(null);
                 }
             }
             else
             {
-                Debug.LogError($"[DownloadImage] 獲取圖片 URL 失敗: {request.error}");
-                Debug.LogError($"[DownloadImage] 原始回應: {request.downloadHandler.text}");
+                Debug.LogError($"[DownloadImage] 取圖 API 請求失敗: {request.error}");
                 onImageDownloaded?.Invoke(null);
             }
         }
     }
 
-    // 超時處理的協程
+    // ===== 共用：帶逾時的送出 =====
     private IEnumerator SendRequestWithTimeout(UnityWebRequest request, float timeout)
     {
         var operation = request.SendWebRequest();
@@ -208,10 +238,12 @@ public class ImageStyleTransferHandler : MonoBehaviour
         }
     }
 
-    [Serializable]
-    private class TaskResponse { public string task_id; }
-    [Serializable]
-    private class ProgressResponse { public float progress; public string type; }
-    [Serializable]
-    private class DownloadResponse { public string filename; public string url; }
+    // ===== 回應資料模型 =====
+    [Serializable] private class TaskResponse { public string task_id; }
+
+    // 同事版進度：{ "type": "Style-Transfer", "progress": 100 }
+    [Serializable] private class ProgressResponse { public float progress; public string type; }
+
+    // 同事版取圖：{ "status": "Finish", "url": "http://..." }
+    [Serializable] private class GetImageResponse { public string status; public string url; }
 }

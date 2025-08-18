@@ -1,55 +1,86 @@
-using System.Collections.Generic;
-using UnityEngine.UI;
-using UnityEngine;
 using System.Collections;
-
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class ScratchManager : MonoBehaviour
 {
-    public List<Sprite> maskImages;     // 遮罩圖片（共用）
-    public List<Texture> backgroundImages; // 底圖（會顯示在 RawImage 背後）
-    public List<RawImage> backgroundRenderers; // 顯示底圖的 RawImage
-    public List<ScratchCard> scratchCards; // [修改] 改為多個 ScratchCard
+    [Header("Scratch")]
+    public List<Sprite> maskImages;
+    public List<Texture> backgroundImages;
+    public List<RawImage> backgroundRenderers;
+    public List<ScratchCard> scratchCards;
+    public float clearThreshold = 0.6f;
+    public float revealHoldTime = 15f;
+    public float restoreSpeed = 1f;
+    public Texture brushTexture;
+    public Material eraseMaterial;
+    public float brushSize = 64f;
 
-    public float clearThreshold = 0.6f; // 觸發立即揭曉的百分比
-    public float revealHoldTime = 15f;  // 顯示後等待恢復的秒數
-    public float restoreSpeed = 1f; // [新增] 從 ScratchCard 移過來，由 Manager 控制還原速度
-
-    public Texture brushTexture;        // 新增：由 Manager 統一提供筆刷
-    public Material eraseMaterial;      // 新增：由 Manager 統一提供刮除材質
-    public float brushSize = 64f;       // 新增：由 Manager 控一律設定筆刷大小
+    [Header("Koku Aesthetic UI")]
+    [SerializeField] private RawImage previewImage; // TakingPhotoPanel/RawImage（即時預覽）
+    [SerializeField] private RawImage resultImage;  // Tex_HiddenImage 的 RawImage（風格化結果）
+    [SerializeField] private GameObject takingPhotoPanel;
+    [SerializeField] private GameObject scratchSurface;
+    [SerializeField] private WebCamController webCam;
 
     private int currentIndex = 0;
     private bool imageFullyRevealed = false;
-    private List<Coroutine> restoreRoutines = new List<Coroutine>();      // 每卡一個協程
-    private HashSet<ScratchCard> revealedCards = new HashSet<ScratchCard>(); // 記錄已揭曉卡片
-    void Start()
+    private readonly List<Coroutine> restoreRoutines = new();
+    private readonly HashSet<ScratchCard> revealedCards = new();
+
+    private void Start()
     {
         foreach (var card in scratchCards)
         {
             card.Init();
-            card.SetBrush(brushTexture, eraseMaterial, brushSize); // [新增] 初始化筆刷參數
+            card.SetBrush(brushTexture, eraseMaterial, brushSize);
         }
         ShowImageAt(0);
     }
 
+    // === 可庫美學：開始預覽 ===
+    public void UI_StartPreview()
+    {
+        takingPhotoPanel.SetActive(true);
+        scratchSurface.SetActive(false);
+
+        webCam.OpenCamera(webCam.selectedDeviceName);                         // 開鏡頭
+        if (previewImage != null) previewImage.texture = webCam.PreviewTexture; // 綁預覽貼圖
+    }
+
+    // === 可庫美學：拍照並風格化 ===
+    public void UI_CaptureAndStylize(string styleName)
+    {
+        StartCoroutine(webCam.CaptureAndStylize(styleName, OnStyledReady));
+    }
+
+    // 風格化完成：顯示在 Tex_HiddenImage，切回刮刮介面
+    private void OnStyledReady(Texture2D tex)
+    {
+        if (tex == null) return;
+
+        if (resultImage != null) resultImage.texture = tex; // 顯示到 Tex_HiddenImage
+        // 同步更新所有刮刮卡底圖
+        foreach (var r in backgroundRenderers) r.texture = tex;
+        foreach (var c in scratchCards) { c.ResetScratch(); }
+
+        takingPhotoPanel.SetActive(false);
+        scratchSurface.SetActive(true);
+    }
+
+    // ==== 既有刮刮卡流程（原樣保留） ====
     public void ShowImageAt(int index)
     {
         if (index >= backgroundImages.Count) index = 0;
         currentIndex = index;
         imageFullyRevealed = false;
-        // [新增] 停止所有協程
-        foreach (var routine in restoreRoutines)
-        {
-            if (routine != null) StopCoroutine(routine);
-        }
+
+        foreach (var routine in restoreRoutines) if (routine != null) StopCoroutine(routine);
         restoreRoutines.Clear();
-        revealedCards.Clear(); // 清空揭曉紀錄
-        foreach (var renderer in backgroundRenderers)
-        {
-            renderer.texture = backgroundImages[index];
-        }
-        // 每張卡片個別設定遮罩
+        revealedCards.Clear();
+
+        foreach (var renderer in backgroundRenderers) renderer.texture = backgroundImages[index];
         foreach (var card in scratchCards)
         {
             card.SetMask(maskImages[index]);
@@ -61,44 +92,32 @@ public class ScratchManager : MonoBehaviour
     {
         yield return new WaitForSeconds(revealHoldTime);
         yield return target.SmoothRestoreMask(restoreSpeed);
-        // 所有卡都揭曉過且協程跑完才切換
-        if (revealedCards.Count >= scratchCards.Count)
-        {
-            ShowImageAt(GetRandomIndex());
-        }
+        if (revealedCards.Count >= scratchCards.Count) ShowImageAt(GetRandomIndex());
     }
+
     private int GetRandomIndex()
     {
-        if (backgroundImages.Count <= 1)
-            return 0;
-
+        if (backgroundImages.Count <= 1) return 0;
         int randomIndex;
-        do
-        {
-            randomIndex = Random.Range(0, backgroundImages.Count);
-        }
-        while (randomIndex == currentIndex); // 避免重複同一張
-
+        do { randomIndex = Random.Range(0, backgroundImages.Count); }
+        while (randomIndex == currentIndex);
         return randomIndex;
     }
+
     private void Update()
     {
-        if (!imageFullyRevealed)
+        if (imageFullyRevealed) return;
+
+        foreach (var card in scratchCards)
         {
-            foreach (var card in scratchCards)
+            if (!revealedCards.Contains(card) && card.GetClearedRatio() >= clearThreshold)
             {
-                if (!revealedCards.Contains(card) && card.GetClearedRatio() >= clearThreshold)
-                {
-                    revealedCards.Add(card);                // 加入已揭曉集合
-                    card.ShowFullImage();                   // 顯示全圖
-                    var routine = StartCoroutine(AutoRestoreAfterDelay(card));
-                    restoreRoutines.Add(routine);
-                }
-                if (revealedCards.Count >= scratchCards.Count)
-                {
-                    imageFullyRevealed = true; // 全部揭曉後只記一次
-                }
+                revealedCards.Add(card);
+                card.ShowFullImage();
+                var routine = StartCoroutine(AutoRestoreAfterDelay(card));
+                restoreRoutines.Add(routine);
             }
+            if (revealedCards.Count >= scratchCards.Count) imageFullyRevealed = true;
         }
     }
 }
