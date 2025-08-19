@@ -1810,10 +1810,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   jointPrefab: {fileID: 2268035406872768630, guid: 6ad2cce06f0449e40976dcd500774d0f, type: 3}
   skeletonParent: {fileID: 1655640884}
-  jointScale: {x: 0.1, y: 0.1, z: 0.1}
+  jointScale: {x: 0.05, y: 0.05, z: 0.05}
   positionScale: {x: 1, y: 1, z: 1}
   positionOffset: {x: 0, y: 0, z: 0}
   invertY: 0
+  useWorldSpace: 0
   hideWhenLowConfidence: 0
   minConfidence: 0
   enableConsoleLog: 1
@@ -3490,13 +3491,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1655640883}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!1 &1666678122
 GameObject:
   m_ObjectHideFlags: 0

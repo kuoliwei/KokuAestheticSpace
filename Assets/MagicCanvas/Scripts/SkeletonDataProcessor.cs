@@ -15,6 +15,9 @@ public class SkeletonDataProcessor : MonoBehaviour
     public Vector3 positionOffset = Vector3.zero;
     public bool invertY = false;
 
+    [Tooltip("勾選 = 使用世界座標；否則使用 SkeletonParent 的本地座標")]
+    public bool useWorldSpace = true;
+
     [Header("顯示條件")]
     public bool hideWhenLowConfidence = false;
     public float minConfidence = 0f;
@@ -76,7 +79,10 @@ public class SkeletonDataProcessor : MonoBehaviour
                     data.z * positionScale.z
                 ) + positionOffset;
 
-                vis.joints[j].position = pos;
+                if (useWorldSpace)
+                    vis.joints[j].position = pos;
+                else
+                    vis.joints[j].localPosition = pos;
 
                 // 顯示/隱藏
                 var r = vis.renderers[j];
