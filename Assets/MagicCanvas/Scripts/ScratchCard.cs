@@ -261,6 +261,7 @@ public class ScratchCard : MonoBehaviour, IPointerDownHandler
             if (uvBatch.Count > 0)
             {
                 Debug.Log($"[Debug] 本幀處理筆數：{uvBatch.Count}");
+                Debug.Log($"[Debug] Queue 剩餘數量：{uvQueue.Count}");
                 DrawTransparentAt(uvBatch); // 使用你剛剛實作的多筆版本
             }
         }

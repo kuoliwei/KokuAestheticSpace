@@ -13,7 +13,7 @@ public class SkeletonDataProcessor : MonoBehaviour
     [Header("座標轉換（資料 -> 世界座標）")]
     public Vector3 positionScale = Vector3.one;
     public Vector3 positionOffset = Vector3.zero;
-    public bool invertY = false;
+    //public bool invertY = false;
 
     [Tooltip("勾選 = 使用世界座標；否則使用 SkeletonParent 的本地座標")]
     public bool useWorldSpace = true;
@@ -25,6 +25,11 @@ public class SkeletonDataProcessor : MonoBehaviour
     [Header("Console 列印")]
     public bool enableConsoleLog = true;     // ← 打開就會列印
     public bool logOnlyWhenSomeonePresent = true;
+
+    // 在 class SkeletonDataProcessor 中新增
+    [SerializeField] private LayerMask canvasLayer; // 指定 Quad (畫布) 的 layer
+    [SerializeField] private float rayLength = 5f;  // Ray 最長距離
+    [SerializeField] private BrushDataProcessor brushProcessor; // 連結 BrushDataProcessor
 
     // ----- 內部狀態 -----
     class SkeletonVisual
@@ -75,14 +80,16 @@ public class SkeletonDataProcessor : MonoBehaviour
                 // 可視化座標
                 Vector3 pos = new Vector3(
                     data.x * positionScale.x,
-                    (invertY ? -data.y : data.y) * positionScale.y,
-                    data.z * positionScale.z
+                    data.z * positionScale.z,   // Z → Unity 的 Y
+                    data.y * positionScale.y    // Y → Unity 的 Z
                 ) + positionOffset;
 
                 if (useWorldSpace)
                     vis.joints[j].position = pos;
                 else
                     vis.joints[j].localPosition = pos;
+
+
 
                 // 顯示/隱藏
                 var r = vis.renderers[j];
@@ -100,6 +107,13 @@ public class SkeletonDataProcessor : MonoBehaviour
                     string name = ((JointId)j).ToString();
                     sb.AppendLine($"  {name,-14} => x={data.x:F3}, y={data.y:F3}, z={data.z:F3}, conf={data.conf:F2}");
                 }
+            }
+
+            // 在 HandleSkeletonFrame(...) 最後，跑完 joints 更新後加上：
+            if (vis != null)
+            {
+                TryShootWristRay(vis.joints[(int)JointId.LeftWrist]);
+                TryShootWristRay(vis.joints[(int)JointId.RightWrist]);
             }
 
             if (enableConsoleLog)
@@ -160,6 +174,28 @@ public class SkeletonDataProcessor : MonoBehaviour
             if (vis != null && vis.root != null)
                 Destroy(vis.root);
             visuals.Remove(id);
+        }
+    }
+    private void TryShootWristRay(Transform wrist)
+    {
+        if (wrist == null) return;
+
+        Ray ray = new Ray(wrist.position, wrist.forward); // 從手腕往前射出
+        if (Physics.Raycast(ray, out RaycastHit hit, rayLength, canvasLayer))
+        {
+            // 取 quad 上的 UV 座標
+            Vector2 uv = hit.textureCoord;
+
+            // 呼叫 BrushDataProcessor → 在 ScratchCard 抹除
+            brushProcessor.HandleBrushData(new List<BrushData> {
+            new BrushData { point = new float[]{ uv.x, uv.y } }
+        });
+
+            Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.green, 0.1f); // Debug 用
+        }
+        else
+        {
+            Debug.DrawRay(ray.origin, ray.direction * rayLength, Color.red, 0.1f);
         }
     }
 }
