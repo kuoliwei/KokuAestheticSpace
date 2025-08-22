@@ -22,7 +22,10 @@ public class ImageStyleTransferHandler : MonoBehaviour
     private string taskId = null;
     private string imageUrl = null;
     private const float RequestTimeout = 10f;
-
+    private void Start()
+    {
+        photoUrlInput.text = ipAddress;
+    }
     public void OnInputFieldValueChanged()
     {
         ipAddress = photoUrlInput.text;

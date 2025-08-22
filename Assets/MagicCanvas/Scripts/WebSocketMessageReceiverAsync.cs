@@ -45,9 +45,8 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
         {
             webSocketClient.OnMessageReceive.AddListener(message =>
             {
-                //receivedCountThisSecond++;
-                //ReceiveMessage(message);
-                ReceiveSkeletonMessage(message);
+                //ReceiveMessage(message);    //  接收uv座標
+                ReceiveSkeletonMessage(message);    //  接收骨架資料
             });
             webSocketClient.OnConnected.AddListener(OnWebSocketConnected);
             webSocketClient.OnConnectionError.AddListener(webSocketConnectUI.OnConnectionFaild);
