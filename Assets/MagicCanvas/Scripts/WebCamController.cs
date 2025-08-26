@@ -81,7 +81,7 @@ public class WebCamController : MonoBehaviour
             if (devices.Length == 0) { Debug.LogError("No webcam found."); return; }
         }
 
-        webCamTexture = new WebCamTexture(selectedDeviceName);
+        webCamTexture = new WebCamTexture(selectedDeviceName, 1920, 1080);
         webCamTexture.Play();
     }
     //public void OpenCamera(string deviceName = null, int width = 1280, int height = 720, int fps = 30)

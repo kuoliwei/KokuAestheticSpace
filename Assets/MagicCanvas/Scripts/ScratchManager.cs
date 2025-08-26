@@ -42,10 +42,14 @@ public class ScratchManager : MonoBehaviour
     // === 可庫美學：開始預覽 ===
     public void UI_StartPreview()
     {
-        //takingPhotoPanel.SetActive(true);
-        //scratchSurface.SetActive(false);
-        takingPhotoPanel.SetActive(false);
-        scratchSurface.SetActive(true);
+        {  //  包含風格轉換
+            takingPhotoPanel.SetActive(true);
+            scratchSurface.SetActive(false);
+        }
+        {  //  不包含風格轉換
+            //takingPhotoPanel.SetActive(false);
+            //scratchSurface.SetActive(true);
+        }
 
         webCam.OpenCamera(webCam.selectedDeviceName);                         // 開鏡頭
         if (previewImage != null) previewImage.texture = webCam.PreviewTexture; // 綁預覽貼圖

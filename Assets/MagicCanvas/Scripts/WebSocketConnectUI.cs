@@ -19,10 +19,12 @@ public class WebSocketConnectUI : MonoBehaviour
     private void Start()
     {
         // 若要預設可填在這裡（目前已註解）
-        ipInput.text = "127.0.0.1";
-        portInput.text = "9999";
+        //ipInput.text = "127.0.0.1";
+        //portInput.text = "9999";
         //ipInput.text = "10.66.66.57";
         //portInput.text = "8765";
+        ipInput.text = "10.66.66.51";
+        portInput.text = "8765";
         //ip = ipInput.text;
         //port = portInput.text;
 
@@ -36,8 +38,10 @@ public class WebSocketConnectUI : MonoBehaviour
     public void OnClickConnect()
     {
         message.text = "";
-        string ip = this.ip;
-        string portText = this.port;
+        //string ip = this.ip;
+        //string portText = this.port;
+        string ip = ipInput.text;
+        string portText = portInput.text;
 
         // IP 合法性檢查
         if (!IPAddress.TryParse(ip, out _))

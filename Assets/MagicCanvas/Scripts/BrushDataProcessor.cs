@@ -6,6 +6,8 @@ using UnityEngine;
 public class BrushDataProcessor : MonoBehaviour
 {
     [SerializeField] private List<ScratchCard> scratchCards;
+    [SerializeField] private HandReferenceDotSpawner refDotSpawner; // 參考紅點顯示
+
     //[SerializeField] HandParticleEffectSpawner spawner;
     public bool isRevealing = false;
     public void HandleBrushData(List<BrushData> dataList)
@@ -31,6 +33,15 @@ public class BrushDataProcessor : MonoBehaviour
                     card.EraseAtNormalizedUV(uv); // 每一個卡片都處理這個刮除點
                 }
             }
+        }
+
+        // —— 畫面紅點同步 —— //
+        if (refDotSpawner != null)
+        {
+            if (screenPosList.Count > 0)
+                refDotSpawner.SyncDotsToScreenPositions(screenPosList);
+            else
+                refDotSpawner.ClearAll();
         }
 
         //// [新增] 控制多個特效物件

@@ -99,7 +99,7 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
                 OnPoseFrameReceived.Invoke(frame);
                 processedPose++;
             }
-            Debug.Log($"本幀處理{processedPose}筆frame資料");
+            //Debug.Log($"本幀處理{processedPose}筆frame資料");
             // 需要監控時可印出 processedPose
         }
         // 監控

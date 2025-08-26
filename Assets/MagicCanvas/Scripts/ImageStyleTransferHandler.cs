@@ -8,7 +8,7 @@ using UnityEngine.UI;
 public class ImageStyleTransferHandler : MonoBehaviour
 {
     [Header("Server")]
-    public string ipAddress = "https://67f89904b106.ngrok-free.app"; // 後端 Base URL（不要結尾斜線）
+    public string ipAddress = "https://d0bb5976a900.ngrok-free.app"; // 後端 Base URL（不要結尾斜線）
 
     [Header("Polling")]
     [Tooltip("是否使用同事版協議（不帶 task_id 的全域輪詢）")]
@@ -187,7 +187,7 @@ public class ImageStyleTransferHandler : MonoBehaviour
                     // 手動替換內網域名為 ngrok 外網域名
                     imageUrl = imageUrl.Replace(
                         "http://192.168.50.160:3000",
-                        "https://67f89904b106.ngrok-free.app"
+                        ipAddress
                     );
                     Debug.Log($"[DownloadImage] 下載圖片 URL: {imageUrl}");
 

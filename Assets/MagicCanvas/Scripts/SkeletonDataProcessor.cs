@@ -116,8 +116,8 @@ public class SkeletonDataProcessor : MonoBehaviour
                 TryShootWristRay(vis.joints[(int)JointId.RightWrist]);
             }
 
-            if (enableConsoleLog)
-                Debug.Log(sb.ToString());
+            //if (enableConsoleLog)
+            //    Debug.Log(sb.ToString());
         }
 
         // 3) 刪除本幀沒出現的人
