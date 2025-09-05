@@ -35,6 +35,7 @@ public class ImageStyleTransferHandler : MonoBehaviour
     // 與你原本一致：傳 Base64 + style，後端若同時也支援 prompt，可再自行擴充
     public IEnumerator SendStyleRequest(string imageBase64, string style, Action<string> onComplete)
     {
+        Debug.Log("呼叫SendStyleRequest()");
         string url = $"{ipAddress}/comfyui/uploadimage2style";
         var requestBody = new { image64 = imageBase64, style = style };
         string jsonData = JsonConvert.SerializeObject(requestBody);

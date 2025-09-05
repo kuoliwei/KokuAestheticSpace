@@ -21,7 +21,7 @@ public class WebSocketMessageReceiver : MonoBehaviour
     {
         webSocketClient.OnMessageReceive.AddListener(ReceiveMessage);
         webSocketClient.OnConnected.AddListener(OnWebSocketConnected);
-        webSocketClient.OnConnectionError.AddListener(webSocketConnectUI.OnConnectionFaild);
+        //webSocketClient.OnConnectionError.AddListener(webSocketConnectUI.OnConnectionFaild);
         webSocketClient.OnDisconnected.AddListener(OnWebSocketDisconnected);
     }
     private void OnWebSocketDisconnected()

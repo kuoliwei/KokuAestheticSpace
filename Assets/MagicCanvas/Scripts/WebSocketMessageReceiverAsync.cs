@@ -49,7 +49,10 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
                 ReceiveSkeletonMessage(message);    //  接收骨架資料
             });
             webSocketClient.OnConnected.AddListener(OnWebSocketConnected);
-            webSocketClient.OnConnectionError.AddListener(webSocketConnectUI.OnConnectionFaild);
+            webSocketClient.OnConnectionError.AddListener(() =>
+            {
+                webSocketConnectUI.OnConnectionFaild("連線失敗");
+            });
             webSocketClient.OnDisconnected.AddListener(OnWebSocketDisconnected);
         }
     }
@@ -230,6 +233,7 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
 
     private void OnWebSocketDisconnected()
     {
+        Debug.Log("呼叫OnWebSocketDisconnected()");
         if (!connectPanel.activeSelf)
         {
             reconnectUI?.ShowFlicker();
@@ -245,13 +249,14 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
 
     private void OnWebSocketConnected()
     {
+        //Debug.Log("呼叫OnWebSocketConnected()");
         reconnectUI?.ShowSuccessAndHide();
 
-        if (connectPanel != null)
-        {
-            connectPanel.SetActive(false);
-        }
-
+        //if (connectPanel != null)
+        //{
+        //    connectPanel.SetActive(false);
+        //}
+        webSocketConnectUI?.OnConnectionSucceeded();
         webSocketClient.allowReconnect = false;
 
         if (webSocketClient.isReconnectAttempt)
@@ -266,8 +271,9 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
     /// </summary>
     public void ConnectToServer(string ip, string port)
     {
+        //Debug.Log("呼叫ConnectToServer()");
         string address = $"ws://{ip}:{port}";
-        Debug.Log($"[WebSocketReceiverAsync] Connecting to: {address}");
+        //Debug.Log($"[WebSocketReceiverAsync] Connecting to: {address}");
 
         webSocketClient.CloseConnection();
         webSocketClient.StartConnection(address);

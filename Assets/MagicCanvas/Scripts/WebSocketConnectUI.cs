@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Net;
+using System;
 
 public class WebSocketConnectUI : MonoBehaviour
 {
@@ -15,58 +16,67 @@ public class WebSocketConnectUI : MonoBehaviour
     private string port = "9999";
     [Header("連線接收器")]
     public WebSocketMessageReceiverAsync receiver;
-
+    public event Action<bool, string> OnConnectResult; // true=成功；false=失敗；string=訊息
     private void Start()
     {
         // 若要預設可填在這裡（目前已註解）
-        //ipInput.text = "127.0.0.1";
-        //portInput.text = "9999";
+        ipInput.text = "127.0.0.1";
+        portInput.text = "9999";
         //ipInput.text = "10.66.66.57";
         //portInput.text = "8765";
-        ipInput.text = "10.66.66.51";
-        portInput.text = "8765";
+        //ipInput.text = "10.66.66.51";
+        //portInput.text = "8765";
         //ip = ipInput.text;
         //port = portInput.text;
 
         //connectButton.onClick.AddListener(OnClickConnect);
     }
-    public void OnInputFieldValueChanged()
+    // 供 PanelFlowController 呼叫
+    public void TryConnect()
     {
-        ip = ipInput.text;
-        port = portInput.text;
-    }
-    public void OnClickConnect()
-    {
+        //Debug.Log("呼叫TryConnect()");
         message.text = "";
         //string ip = this.ip;
         //string portText = this.port;
         string ip = ipInput.text;
         string portText = portInput.text;
 
-        // IP 合法性檢查
-        if (!IPAddress.TryParse(ip, out _))
+        if (!System.Net.IPAddress.TryParse(ip, out _))
         {
-            Debug.LogWarning("IP 格式不正確");
             message.text += "IP 格式不正確\n";
+            OnConnectResult?.Invoke(false, "IP 格式不正確");
             return;
         }
-
-        // Port 合法性檢查
         if (!int.TryParse(portText, out int port) || port < 1 || port > 65535)
         {
-            Debug.LogWarning("Port 格式不正確（有效範圍：1~65535）");
             message.text += "Port 格式不正確（有效範圍：1~65535）";
+            OnConnectResult?.Invoke(false, "Port 格式不正確");
             return;
         }
 
+        // 交給接收器去連線；成功/失敗請回呼到下方兩個方法
         receiver.ConnectToServer(ip, portText);
     }
-    public void OnConnectionFaild()
+    // 讓接收器在「連線成功」時呼叫
+    public void OnConnectionSucceeded()
     {
-        Debug.LogWarning("連線失敗");
+        //Debug.Log("呼叫OnConnectionSucceeded()");
+        message.text = "連線成功";
+        OnConnectResult?.Invoke(true, "連線成功");
+    }
+    // （原本就有的）連線失敗回呼：擴充成事件回報
+    public void OnConnectionFaild(string reason = "連線失敗")
+    {
+        Debug.Log("呼叫OnConnectionFaild()");
         if (connectPanel.activeSelf)
         {
-            message.text = "連線失敗";
+            message.text = reason;
         }
+        OnConnectResult?.Invoke(false, reason);
+    }
+    public void OnInputFieldValueChanged()
+    {
+        ip = ipInput.text;
+        port = portInput.text;
     }
 }

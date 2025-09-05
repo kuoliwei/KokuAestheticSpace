@@ -69,6 +69,7 @@ public class WebCamController : MonoBehaviour
     // 開相機（可傳 deviceName，不傳則用第一個）
     public void OpenCamera(string selectedDeviceName)
     {
+        Debug.Log("呼叫OpenCamera()");
         // 若已在同一台裝置上播放，不重複開
         if (webCamTexture != null && webCamTexture.isPlaying &&
             (string.IsNullOrEmpty(selectedDeviceName) || webCamTexture.deviceName == selectedDeviceName)) return;
@@ -105,12 +106,14 @@ public class WebCamController : MonoBehaviour
 
     public void CloseCamera()
     {
+        Debug.Log("呼叫CloseCamera()");
         if (webCamTexture != null && webCamTexture.isPlaying) webCamTexture.Stop();
     }
 
     // 同步取得目前一張影像（Texture2D）
     public Texture2D CaptureFrame()
     {
+        Debug.Log("呼叫CaptureFrame()");
         if (webCamTexture == null || !webCamTexture.isPlaying) return null;
         var tex = new Texture2D(webCamTexture.width, webCamTexture.height, TextureFormat.RGB24, false);
         tex.SetPixels(webCamTexture.GetPixels());
