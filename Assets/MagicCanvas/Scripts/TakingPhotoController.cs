@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.IO;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -107,6 +109,7 @@ public class TakingPhotoController : MonoBehaviour
         lastPhoto = photo;
 
         previewRawImage.texture = lastPhoto;
+        SaveTextureAsJPG(lastPhoto);
         StartAftershotDelay();
     }
     public void StartAftershotDelay(int seconds = -1)
@@ -129,5 +132,26 @@ public class TakingPhotoController : MonoBehaviour
     public void UI_OnClosePreview()
     {
         Exit();
+    }
+    // 儲存輸入的 Texture2D 成 .jpg 檔
+    public async void SaveTextureAsJPG(Texture2D tex)
+    {
+        string filePath = Path.Combine(Application.dataPath, "test.jpg");
+        if (tex == null)
+        {
+            Debug.LogWarning("SaveTextureAsJPG: 輸入的 Texture2D 為 null，無法存檔。");
+            return;
+        }
+
+        try
+        {
+            byte[] bytes = tex.EncodeToJPG();
+            await File.WriteAllBytesAsync(filePath, bytes);
+            Debug.Log($"照片已存成 JPG：{filePath}");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"存檔失敗：{ex.Message}");
+        }
     }
 }

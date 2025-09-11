@@ -18,7 +18,6 @@ public class BrushDataProcessor : MonoBehaviour
             if (data.point == null || data.point.Length < 2)
                 continue;
 
-
             float x = data.point[0];
             //float y = 1f - data.point[1];            // JSON 傳來為左上為原點，需轉為左下為原點
             float y = data.point[1];            // 改為內部判斷，不須反轉

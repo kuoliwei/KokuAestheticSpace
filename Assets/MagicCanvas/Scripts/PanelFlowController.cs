@@ -48,6 +48,12 @@ public class PanelFlowController : MonoBehaviour
     [SerializeField] ChooseStyleController chooseStyleCtrl;  // ← 新增欄位
     private string pendingTaskId;
 
+    [SerializeField] private WaitingStyleController waitingStyleCtrl;    // 欄位（新增）
+    // pendingTaskId：你在 HandleStyleTaskCreated() 內已經有存起來
+    [SerializeField] private StyleTransformFinishHintController finishHintCtrl;
+    [SerializeField] private DragPicturesHintController dragPicturesHintCtrl;
+
+
     void Start()
     {
         if (wsUI != null) wsUI.OnConnectResult += HandleConnectResult;
@@ -59,6 +65,19 @@ public class PanelFlowController : MonoBehaviour
             chooseStyleCtrl.OnStyleTaskCreated += HandleStyleTaskCreated; // ← 成功：拿到 taskId
             chooseStyleCtrl.OnStyleTaskFailed += HandleStyleTaskFailed;  // ← 失敗：留在原面板
         }
+        // 等待轉換（查進度 / 下載）
+        if (waitingStyleCtrl != null)
+        {
+            waitingStyleCtrl.OnProgressCompleted += HandleWaitingProgressCompleted;     // 100% 才觸發
+            waitingStyleCtrl.OnProgressNotCompleted += HandleWaitingProgressNotCompleted;  // 尚未完成 → 再查一次
+            waitingStyleCtrl.OnProgressFailed += HandleWaitingProgressFailed;        // 真正失敗
+            waitingStyleCtrl.OnDownloadSucceeded += HandleWaitingDownloadSucceeded;     // 下載成功 → 進完成提示
+            waitingStyleCtrl.OnDownloadFailed += HandleWaitingDownloadFailed;        // 下載失敗
+        }
+        if (finishHintCtrl != null)
+            finishHintCtrl.OnFinishCountdown += UI_OnGoToScratchGame;
+        if (dragPicturesHintCtrl != null)
+            dragPicturesHintCtrl.OnDragSimulated += HandleDragSimulated;
         GoTo(FlowState.Connect);
     }
 
@@ -73,6 +92,21 @@ public class PanelFlowController : MonoBehaviour
             chooseStyleCtrl.OnStyleTaskCreated -= HandleStyleTaskCreated;
             chooseStyleCtrl.OnStyleTaskFailed -= HandleStyleTaskFailed;
         }
+
+        if (waitingStyleCtrl != null)
+        {
+            waitingStyleCtrl.OnProgressCompleted -= HandleWaitingProgressCompleted;
+            waitingStyleCtrl.OnProgressNotCompleted -= HandleWaitingProgressNotCompleted;
+            waitingStyleCtrl.OnProgressFailed -= HandleWaitingProgressFailed;
+            waitingStyleCtrl.OnDownloadSucceeded -= HandleWaitingDownloadSucceeded;
+            waitingStyleCtrl.OnDownloadFailed -= HandleWaitingDownloadFailed;
+            waitingStyleCtrl.CancelAll(); // 保險清理協程
+        }
+        if (finishHintCtrl != null)
+            finishHintCtrl.OnFinishCountdown -= UI_OnGoToScratchGame;
+        if (dragPicturesHintCtrl != null)
+            dragPicturesHintCtrl.OnDragSimulated -= HandleDragSimulated;
+
     }
 
     // ======================
@@ -146,13 +180,20 @@ public class PanelFlowController : MonoBehaviour
     // 刮刮樂內部事件：當刮除超過 60% → 完整揭示後呼叫
     public void Sys_OnScratchRevealComplete()
     {
+        Debug.Log("執行Sys_OnScratchRevealComplete");
         if (runningRoutine != null) StopCoroutine(runningRoutine);
         UI_OnGoToDragHint();
         //runningRoutine = StartCoroutine(ShowRevealedThenDragHint());
     }
     public void UI_OnGoToDragHint()
     {
+        Debug.Log("執行UI_OnGoToDragHint");
         GoTo(FlowState.DragPicturesHint);
+    }
+    private void HandleDragSimulated()
+    {
+        Debug.Log("[PanelFlowController] 假滑動完成 → 回到 IllustratePanel");
+        GoTo(FlowState.Illustrate);
     }
 
     // ======================
@@ -204,11 +245,15 @@ public class PanelFlowController : MonoBehaviour
 
             case FlowState.WaitingTransform:
                 waitingStyleTransformPanel.SetActive(true);
+                if (waitingStyleCtrl != null)
+                    waitingStyleCtrl.BeginTracking(pendingTaskId);
                 // 等待期間由外部（AI）完成後，呼叫 Sys_OnStyleTransformDone
                 break;
 
             case FlowState.TransformFinishHint:
                 styleTransformFinishHintPanel.SetActive(true);
+                if (finishHintCtrl != null)
+                    finishHintCtrl.BeginCountdown(transformFinishStaySeconds);
                 //runningRoutine = StartCoroutine(Co_WaitThenEnterScratch());
                 break;
 
@@ -287,7 +332,46 @@ public class PanelFlowController : MonoBehaviour
         // 留在 ChooseStyle 面板，或在面板上顯示錯誤字串
         // 顯示錯誤訊息，停留在 ChooseStylePanel
         chooseStyleCtrl.ShowResult($"任務建立失敗：{reason}");
-        GoTo(FlowState.WaitingTransform);
+
+        GoTo(FlowState.WaitingTransform); // 測試用，即使失敗也進下一步
     }
 
+    // 等待面板：進度 = 100% → 進入下載階段
+    private void HandleWaitingProgressCompleted()
+    {
+        if (waitingStyleCtrl != null)
+            waitingStyleCtrl.BeginDownload();
+    }
+
+    // 等待面板：進度未完成 → 再查一次（可加微延遲避免過頻）
+    private void HandleWaitingProgressNotCompleted()
+    {
+        StartCoroutine(RequeryAfterDelay(0.5f));
+    }
+    private IEnumerator RequeryAfterDelay(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        if (State == FlowState.WaitingTransform && waitingStyleCtrl != null)
+            waitingStyleCtrl.BeginTracking(pendingTaskId);
+    }
+
+    // 等待面板：查進度真正失敗
+    private void HandleWaitingProgressFailed(string reason)
+    {
+        Debug.LogError($"Progress failed: {reason}");
+        // 視需求：停留在 Waiting 顯示錯誤，或退回 ChooseStyle
+    }
+
+    // 等待面板：下載成功 → 進完成提示
+    private void HandleWaitingDownloadSucceeded(Texture2D tex)
+    {
+        GoTo(FlowState.TransformFinishHint);
+    }
+
+    // 等待面板：下載失敗
+    private void HandleWaitingDownloadFailed(string reason)
+    {
+        Debug.LogError($"Download failed: {reason}");
+        // 視需求處理（停留或退回）
+    }
 }
