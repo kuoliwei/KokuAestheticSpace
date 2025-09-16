@@ -7,12 +7,33 @@ public class BrushDataProcessor : MonoBehaviour
 {
     [SerializeField] private List<ScratchCard> scratchCards;
     [SerializeField] private HandReferenceDotSpawner refDotSpawner; // 參考紅點顯示
-
-    //[SerializeField] HandParticleEffectSpawner spawner;
+                                                                    // BrushDataProcessor.cs（節錄）
+    [SerializeField] private UILaserButtonInteractor buttonInteractor;
+    // [NEW] 這就是兩邊共用的目標 UI（UV 的 0..1 會映在這塊 RectTransform 上）
+    [SerializeField] private RectTransform paintingUIRectTransform; // [NEW]
+    [SerializeField] private RectTransform interactiveUIRectTransform; // [NEW]
+    [SerializeField] HandParticleEffectSpawner spawner;
     public bool isRevealing = false;
+    void Start() // 或 Awake()
+    {
+        // [NEW] 統一指派給兩個元件
+        if (paintingUIRectTransform != null)
+        {
+            if (refDotSpawner != null) refDotSpawner.SetTargetRectTransform(paintingUIRectTransform);   // [NEW]
+            if (buttonInteractor != null) buttonInteractor.SetTargetRectTransform(paintingUIRectTransform); // [NEW]
+        }
+        else
+        {
+            Debug.LogWarning("[BrushDataProcessor] sharedUIRectTransform 未指定，UV 轉換將失效。"); // [NEW]
+        }
+        // 新增：把互動區的目標給特效 Spawner
+        if (spawner != null && interactiveUIRectTransform != null)                          // [NEW]
+            spawner.SetTargets(interactiveUIRectTransform, interactiveUIRectTransform.GetComponentInParent<Canvas>()); // [NEW]
+    }
     public void HandleBrushData(List<BrushData> dataList)
     {
         List<Vector2> screenPosList = new List<Vector2>(); // [新增] 收集所有手座標的螢幕位置
+        List<Vector2> uvList = new List<Vector2>();        // [NEW] 直接收集 UV，給紅點 UI 用
         foreach (var data in dataList)
         {
             if (data.point == null || data.point.Length < 2)
@@ -24,22 +45,36 @@ public class BrushDataProcessor : MonoBehaviour
             Vector2 uv = new Vector2(x, y);
 
             screenPosList.Add(new Vector2(x * Screen.width, y * Screen.height)); // [新增] 加入螢幕座標清單
+            uvList.Add(uv); // [NEW] 累積 UV 供紅點 UI 使用
 
             foreach (var card in scratchCards)
             {
-                if (!card.isRevealing)
+                if (!card.isRevealing && card.gameObject.activeSelf)
                 {
                     card.EraseAtNormalizedUV(uv); // 每一個卡片都處理這個刮除點
                 }
             }
         }
 
+        //// ★ 新增：按鈕命中判斷
+        //if (buttonInteractor != null && screenPosList.Count > 0)
+        //    buttonInteractor.Process(screenPosList);
+        // ★ 新增：按鈕命中判斷（UV版）
+        int heatedUvIndex = -1;
+        float heatedHoldTimesPercentage = 0;
+        if (buttonInteractor != null && uvList.Count > 0)
+            buttonInteractor.ProcessUV(uvList, true, out heatedUvIndex, out heatedHoldTimesPercentage);
+
         // —— 畫面紅點同步 —— //
         if (refDotSpawner != null)
         {
-            if (screenPosList.Count > 0)
-                refDotSpawner.SyncDotsToScreenPositions(screenPosList);
-            else
+            //if (screenPosList.Count > 0)
+            //    refDotSpawner.SyncDotsToScreenPositions(screenPosList);
+            //else
+            //    refDotSpawner.ClearAll();
+            if (uvList.Count > 0)                                  // [NEW]
+                refDotSpawner.SyncDotsToUVPositions(uvList,true, heatedUvIndex, heatedHoldTimesPercentage);       // [NEW] 直接把 UV 傳給 spawner（會用 uiRectTransform 計算）
+            else                                                   // [NEW]
                 refDotSpawner.ClearAll();
         }
 
@@ -48,5 +83,19 @@ public class BrushDataProcessor : MonoBehaviour
         //    spawner.SyncParticlesToScreenPositions(screenPosList); // 多個手就會有多個特效
         //else
         //    spawner.ClearAll(); // 沒人時全部銷毀
+    }
+    // BrushDataProcessor.cs 內新增（不動你原有 HandleBrushData）
+    public void HandleEffectUV(List<Vector2> effectUVs) // [NEW]
+    {
+        if (effectUVs == null || effectUVs.Count == 0) return;
+
+        // —— 互動區特效（Interactive 區） ——
+        if (spawner != null)
+        {
+            if (effectUVs != null && effectUVs.Count > 0)     // [NEW] 與紅點一致：有就同步
+                spawner.SyncParticlesToUVPositions(effectUVs);
+            else                                              // [NEW] 沒有就馬上清空，避免殘留
+                spawner.ClearAll();
+        }
     }
 }

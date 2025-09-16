@@ -34,7 +34,7 @@ public class PanelFlowController : MonoBehaviour
 
     [Header("Timings (seconds)")]
     [SerializeField] int takingPhotoCountdown = 3;      // 拍照倒數
-    [SerializeField] int transformFinishStaySeconds = 2;// 完成提示停留秒數
+    [SerializeField] int transformFinishStaySeconds = 5;// 完成提示停留秒數
     [SerializeField] int revealStaySeconds = 3;         // 圖片揭示後停留秒數
 
     Coroutine runningRoutine;
@@ -233,7 +233,11 @@ public class PanelFlowController : MonoBehaviour
             case FlowState.TakingPhoto:
                 takingPhotoPanel.SetActive(true);
                 // 不做倒數，由控制器開鏡頭
-                if (takingPhotoCtrl != null) takingPhotoCtrl.Enter();
+                if (takingPhotoCtrl != null)
+                {
+                    takingPhotoCtrl.Enter();
+                    takingPhotoCtrl.StartCaptureCountdown();
+                }
                 //runningRoutine = StartCoroutine(Co_TakingPhotoCountdown());
                 break;
 
@@ -265,6 +269,7 @@ public class PanelFlowController : MonoBehaviour
 
             case FlowState.DragPicturesHint:
                 dragPicturesHintPanel.SetActive(true);
+                texHiddenImagePanel.SetActive(true);
                 break;
         }
     }
@@ -333,7 +338,7 @@ public class PanelFlowController : MonoBehaviour
         // 顯示錯誤訊息，停留在 ChooseStylePanel
         chooseStyleCtrl.ShowResult($"任務建立失敗：{reason}");
 
-        GoTo(FlowState.WaitingTransform); // 測試用，即使失敗也進下一步
+        //GoTo(FlowState.WaitingTransform); // 測試用，即使失敗也進下一步
     }
 
     // 等待面板：進度 = 100% → 進入下載階段
@@ -363,7 +368,7 @@ public class PanelFlowController : MonoBehaviour
     }
 
     // 等待面板：下載成功 → 進完成提示
-    private void HandleWaitingDownloadSucceeded(Texture2D tex)
+    private void HandleWaitingDownloadSucceeded()
     {
         GoTo(FlowState.TransformFinishHint);
     }

@@ -14,20 +14,18 @@ public class WebSocketConnectUI : MonoBehaviour
 
     private string ip = "127.0.0.1";
     private string port = "9999";
+    //private string ip = "10.66.66.57";
+    //private string port = "8765";
+    //private string ip = "10.66.66.51";
+    //private string port = "8765";
     [Header("連線接收器")]
     public WebSocketMessageReceiverAsync receiver;
     public event Action<bool, string> OnConnectResult; // true=成功；false=失敗；string=訊息
     private void Start()
     {
         // 若要預設可填在這裡（目前已註解）
-        ipInput.text = "127.0.0.1";
-        portInput.text = "9999";
-        //ipInput.text = "10.66.66.57";
-        //portInput.text = "8765";
-        //ipInput.text = "10.66.66.51";
-        //portInput.text = "8765";
-        //ip = ipInput.text;
-        //port = portInput.text;
+        ipInput.text = ip;
+        portInput.text = port;
 
         //connectButton.onClick.AddListener(OnClickConnect);
     }

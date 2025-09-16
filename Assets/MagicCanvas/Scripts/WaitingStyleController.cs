@@ -12,6 +12,7 @@ public class WaitingStyleController : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private Text progressText;
+    [SerializeField] private ProgressCircleController progressCircleController;
 
     private Coroutine progressRoutine;
     private Coroutine downloadRoutine;
@@ -23,7 +24,7 @@ public class WaitingStyleController : MonoBehaviour
     public event Action OnProgressCompleted;        // 只代表進度到 100%
     public event Action OnProgressNotCompleted;       // 新增：尚未完成（請外部再呼叫 BeginTracking）
     public event Action<string> OnProgressFailed;   // 查進度失敗/中止
-    public event Action<Texture2D> OnDownloadSucceeded;
+    public event Action OnDownloadSucceeded;
     public event Action<string> OnDownloadFailed;
 
     // 由狀態機在進入 Waiting 面板後呼叫：只開始「查進度」
@@ -61,41 +62,45 @@ public class WaitingStyleController : MonoBehaviour
     {
         bool completed = false;
 
-        //// 只輪詢進度，不下載
-        //{  //  呼叫檢查轉換進度的API
-            //yield return styleHandler.CheckProgress(
-            //    p =>
-            //    {
-            //        // p: 0~100
-            //        SetProgressText($"{Mathf.RoundToInt(p)}%");
-            //    },
-            //    () =>
-            //    {
-            //        completed = true;
-            //        SetProgressText("100%");
-            //    });
-        //}
-
-        {  //  用於測試百分比顯示
-            if (fakeProgress < 100)
-            {
-                fakeProgress += 20;
-                yield return new WaitForSeconds(1);
-                SetProgressText($"{fakeProgress.ToString()}%");
-                OnProgressNotCompleted?.Invoke();
-                yield break;
-            }
-            else if (fakeProgress >= 100)
-            {
-                yield return new WaitForSeconds(1);
-                SetProgressText($"{100.ToString()}%");
-                progressRoutine = null;
-                progressCompleted = true;
-                OnProgressCompleted?.Invoke();
-                fakeProgress = 0;
-                yield break;
-            }
+        // 只輪詢進度，不下載
+        {  //  呼叫檢查轉換進度的API
+            yield return styleHandler.CheckProgress(
+                p =>
+                {
+                    // p: 0~100
+                    SetProgressText($"{Mathf.RoundToInt(p)}%");
+                    progressCircleController.SetByPercentage(Mathf.RoundToInt(p));
+                },
+                () =>
+                {
+                    completed = true;
+                    SetProgressText("100%");
+                    progressCircleController.SetByPercentage(100);
+                });
         }
+
+        //{  //  用於測試百分比顯示
+        //    if (fakeProgress < 100)
+        //    {
+        //        SetProgressText($"{fakeProgress.ToString()}%");
+        //        progressCircleController.SetByPercentage(fakeProgress);
+        //        OnProgressNotCompleted?.Invoke();
+        //        fakeProgress = Mathf.Clamp(fakeProgress + 29, 0, 100);
+        //        yield return new WaitForSeconds(1);
+        //        yield break;
+        //    }
+        //    else if (fakeProgress >= 100)
+        //    {
+        //        SetProgressText($"{100.ToString()}%");
+        //        progressCircleController.SetByPercentage(100);
+        //        progressRoutine = null;
+        //        progressCompleted = true;
+        //        OnProgressCompleted?.Invoke();
+        //        fakeProgress = 0;
+        //        yield return new WaitForSeconds(1);
+        //        yield break;
+        //    }
+        //}
 
         // 結束輪詢
         progressRoutine = null;
@@ -116,13 +121,13 @@ public class WaitingStyleController : MonoBehaviour
     {
         Texture2D result = null;
 
-        {  //  測試用，直接讀取圖片並放至resultRawImage
-            string filePath = Path.Combine(Application.dataPath, "test.jpg");
-            result = LoadJPGAsTexture(filePath);
-            if (resultRawImage != null) resultRawImage.texture = result;
-            OnDownloadSucceeded?.Invoke(result);
-            yield break;
-        }
+        //{  //  測試用，直接讀取圖片並放至resultRawImage
+        //    string filePath = Path.Combine(Application.dataPath, "test.jpg");
+        //    result = LoadJPGAsTexture(filePath);
+        //    if (resultRawImage != null) resultRawImage.texture = result;
+        //    OnDownloadSucceeded?.Invoke(result);
+        //    yield break;
+        //}
 
         yield return styleHandler.DownloadImage(tex => result = tex);
         downloadRoutine = null;
@@ -134,7 +139,7 @@ public class WaitingStyleController : MonoBehaviour
         }
 
         if (resultRawImage != null) resultRawImage.texture = result;
-        OnDownloadSucceeded?.Invoke(result);
+        OnDownloadSucceeded?.Invoke();
     }
 
     // ---------- helpers ----------

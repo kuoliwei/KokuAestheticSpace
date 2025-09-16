@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/MagicCanvas/Scenes/MagicCanvas_SingleDisplay.unity
+    guid: ab2961383bcb6de498e68e23328b9318
   m_configObjects: {}

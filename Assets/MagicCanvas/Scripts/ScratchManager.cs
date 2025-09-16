@@ -23,6 +23,7 @@ public class ScratchManager : MonoBehaviour
     [SerializeField] private GameObject takingPhotoPanel;
     [SerializeField] private GameObject scratchSurface;
     [SerializeField] private WebCamController webCam;
+    [SerializeField] private PanelFlowController flow; // 新增
 
     private int currentIndex = 0;
     private bool imageFullyRevealed = false;
@@ -120,8 +121,14 @@ public class ScratchManager : MonoBehaviour
             {
                 revealedCards.Add(card);
                 card.ShowFullImage();
-                var routine = StartCoroutine(AutoRestoreAfterDelay(card));
-                restoreRoutines.Add(routine);
+                // 串接 PanelFlow：當所有卡都達標，立即通知流程切換
+                if (revealedCards.Count >= scratchCards.Count && !imageFullyRevealed)
+                {
+                    imageFullyRevealed = true;
+                    if (flow != null) flow.Sys_OnScratchRevealComplete();
+                }
+                //var routine = StartCoroutine(AutoRestoreAfterDelay(card));
+                //restoreRoutines.Add(routine);
             }
             if (revealedCards.Count >= scratchCards.Count) imageFullyRevealed = true;
         }

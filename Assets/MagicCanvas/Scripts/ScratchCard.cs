@@ -24,6 +24,11 @@ public class ScratchCard : MonoBehaviour, IPointerDownHandler
     {
 
     }
+    // [NEW] 回到此物件啟用時，自動確保是「未刮」狀態
+    private void OnEnable() // [NEW]
+    {
+        RestoreMaskImmediate();
+    }
     public void Init()
     {
         rect = rawImage.rectTransform;
@@ -189,7 +194,45 @@ public class ScratchCard : MonoBehaviour, IPointerDownHandler
         rawImage.texture = renderTex;
         OnFullyRevealed?.Invoke();
     }
+    // [NEW] 立即把遮罩恢復到「未刮」狀態（不走 SmoothRestoreMask 漸進）
+    public void RestoreMaskImmediate()
+    {
+        // 若還沒建 renderTex（例如流程切換剛啟用），這裡保險建一個
+        if (renderTex == null)
+        {
+            renderTex = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
+            renderTex.Create();
+            if (rawImage != null) rawImage.texture = renderTex;
+        }
 
+        // 若沒有現成的 croppedTex，就依照目前的 maskImage 重建一次（同 ResetScratch 的作法）
+        if (croppedTex == null)
+        {
+            if (maskImage == null)
+            {
+                Debug.LogWarning("[ScratchCard] 無法立即恢復：maskImage 尚未指定。");
+                return;
+            }
+            Texture2D tex = maskImage.texture;
+            Rect spriteRect = maskImage.rect;
+            croppedTex = new Texture2D((int)spriteRect.width, (int)spriteRect.height);
+            croppedTex.SetPixels(tex.GetPixels(
+                (int)spriteRect.x,
+                (int)spriteRect.y,
+                (int)spriteRect.width,
+                (int)spriteRect.height
+            ));
+            croppedTex.Apply();
+        }
+
+        // 直接把原始遮罩覆蓋回 renderTex
+        Graphics.Blit(croppedTex, renderTex);
+        if (rawImage != null) rawImage.texture = renderTex;
+
+        // 重置旗標
+        isFullyRevealed = false;
+        isRevealing = false;
+    }
     public IEnumerator SmoothRestoreMask(float restoreSpeed)
     {
         if (croppedTex == null || renderTex == null) yield break;

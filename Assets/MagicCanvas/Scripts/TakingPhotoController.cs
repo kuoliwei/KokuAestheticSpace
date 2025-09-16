@@ -33,6 +33,7 @@ public class TakingPhotoController : MonoBehaviour
         webCam.OpenCamera(webCam.selectedDeviceName);
         if (previewRawImage != null) previewRawImage.texture = webCam.PreviewTexture;
         SetCountdownText(""); // 清空顯示
+        //StartCaptureCountdown();
     }
 
     // 由 PanelFlowController 在「離開 TakingPhoto 狀態」時呼叫
@@ -123,7 +124,7 @@ public class TakingPhotoController : MonoBehaviour
     {
         if (seconds > 0) yield return new WaitForSeconds(seconds);
         aftershotRoutine = null;
-        OnCaptureCompleted?.Invoke();                                        // ★ 現在才通知外部切下一步
+        OnCaptureCompleted?.Invoke();                                        // 現在才通知外部切下一步
     }
     //（可留作備用）
     public void UI_OnCapture() => CapturePhotoToPreview();

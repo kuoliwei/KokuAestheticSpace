@@ -15,7 +15,10 @@ public class ProgressCircleController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
+        foreach(var obj in ProgressBeanObjects)
+        {
+            obj.SetActive(false);
+        }
     }
 
     // Update is called once per frame
@@ -25,11 +28,11 @@ public class ProgressCircleController : MonoBehaviour
     }
     private void OnEnable()
     {
-        StartProgress();
+        //StartProgress();
     }
     private void OnDisable()
     {
-        StopProgress();
+        //StopProgress();
     }
     public void StartProgress()
     {
@@ -48,6 +51,22 @@ public class ProgressCircleController : MonoBehaviour
         {
             StopCoroutine(coroutine);
             coroutine = null;
+        }
+    }
+    public void SetByPercentage(float percentage)
+    {
+        float unit = 100f / (float)(ProgressBeanObjects.Length - 1);
+        int index = (int)(percentage / unit);
+        for (int i = 0; i < ProgressBeanObjects.Length; i++)
+        {
+            if (i <= index && percentage > 0)
+            {
+                if (ProgressBeanObjects[i].activeSelf != true) ProgressBeanObjects[i].SetActive(true);
+            }
+            else
+            {
+                if (ProgressBeanObjects[i].activeSelf != false) ProgressBeanObjects[i].SetActive(false);
+            }
         }
     }
     IEnumerator ProgressCircleSequenceBySetActive()

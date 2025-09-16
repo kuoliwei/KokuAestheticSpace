@@ -8,7 +8,8 @@ using UnityEngine.UI;
 public class ImageStyleTransferHandler : MonoBehaviour
 {
     [Header("Server")]
-    public string ipAddress = "https://d0bb5976a900.ngrok-free.app"; // 後端 Base URL（不要結尾斜線）
+    //public string ipAddress = "https://d0bb5976a900.ngrok-free.app"; // 後端 Base URL（不要結尾斜線）
+    private string ipAddress = "http://10.66.66.54:3000";
 
     [Header("Polling")]
     [Tooltip("是否使用同事版協議（不帶 task_id 的全域輪詢）")]
