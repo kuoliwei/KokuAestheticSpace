@@ -18,7 +18,12 @@ public class UILaserButtonInteractor : MonoBehaviour
     [SerializeField] private float missGrace;// 0.x 秒，照需求調
 
     // [NEW] 紀錄每顆按鈕最後一次被命中的時間
+    private readonly Dictionary<Button, float> firstHitAt = new();
     private readonly Dictionary<Button, float> lastHitAt = new();
+    private readonly Dictionary<Button, float> holdTimers = new(); // 同幀/連續幀累積
+    private readonly HashSet<Button> hitThisFrame = new();
+    // 第一次命中該按鈕時的 UV index
+    private readonly Dictionary<Button, int> firstHitUvIndex = new();
 
     // [NEW] UV 對應的目標 UI（UV 的 0..1 範圍會映到這塊 RectTransform）
     [Header("UV 對應設定")]
@@ -28,8 +33,7 @@ public class UILaserButtonInteractor : MonoBehaviour
         uiRectTransform = rt; // [NEW]
     }
 
-    private readonly Dictionary<Button, float> holdTimers = new(); // 同幀/連續幀累積
-    private readonly HashSet<Button> hitThisFrame = new();
+
 
     void Reset()
     {
@@ -119,20 +123,55 @@ public class UILaserButtonInteractor : MonoBehaviour
         if (raycaster == null || eventSystem == null) return;
         if (uiRectTransform == null) return;
 
-        // Canvas / Camera
+        float now = Time.time; // 如需忽略 timeScale 可改用 Time.unscaledTime
+
+        // 取用 Raycast 相機
         var canvas = raycaster.GetComponent<Canvas>();
         Camera cam = (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
             ? (canvas.worldCamera ?? raycaster.eventCamera ?? Camera.main)
             : null;
 
-        // UV → local(uiRect) → world → screen，並 Raycast
+        // UV → local(uiRect) → world → screen → Raycast(Button)
         Rect r = uiRectTransform.rect;
         Vector2 size = r.size, pivot = uiRectTransform.pivot;
 
         var ped = new PointerEventData(eventSystem);
         var results = new List<RaycastResult>();
 
-        Button firstHitBtn = null; // 這幀第一個命中的按鈕
+        // ---------- 回收/清理：失效元件與 missGrace 超時 ----------
+        // 用快照避免遍歷時修改集合
+        var trackedSnapshot = new List<Button>(firstHitAt.Keys);
+        foreach (var btn in trackedSnapshot)
+        {
+            bool invalid = (btn == null) || !btn.gameObject || !btn.gameObject.activeInHierarchy || !btn.interactable;
+            if (invalid)
+            {
+                firstHitAt.Remove(btn);
+                lastHitAt.Remove(btn);
+                holdTimers.Remove(btn);
+                firstHitUvIndex.Remove(btn);
+                continue;
+            }
+
+            // 超過 missGrace 未再命中 → 回收
+            if (!lastHitAt.TryGetValue(btn, out float last))
+            {
+                // 沒有最後命中時間紀錄，視為無效
+                firstHitAt.Remove(btn);
+                holdTimers.Remove(btn);
+                firstHitUvIndex.Remove(btn);
+                continue;
+            }
+            if ((now - last) > missGrace)
+            {
+                firstHitAt.Remove(btn);
+                lastHitAt.Remove(btn);
+                holdTimers.Remove(btn);
+                firstHitUvIndex.Remove(btn);
+                Debug.Log($"now:{now}, last:{last}, {now - last}>{missGrace},超時");
+            }
+            Debug.Log($"now:{now}, last:{last}");
+        }
 
         for (int i = 0; i < uvList.Count; i++)
         {
@@ -150,66 +189,93 @@ public class UILaserButtonInteractor : MonoBehaviour
             results.Clear();
             raycaster.Raycast(ped, results);
 
+            // 取結果中第一顆可互動的 Button（最上層）
             for (int j = 0; j < results.Count; j++)
             {
                 var go = results[j].gameObject;
-                var btn = go.GetComponentInParent<Button>();
-                if (btn != null && btn.interactable)
+                var btn = go != null ? go.GetComponentInParent<Button>() : null;
+                if (btn != null && btn.interactable && btn.gameObject.activeInHierarchy)
                 {
                     hitThisFrame.Add(btn);
 
-                    if (heatedUvIndex == -1) // 記錄第一個命中的 UV 與按鈕
+                    // 第一次被擊中 → 建檔 firstHitAt / firstHitUvIndex
+                    if (!firstHitAt.ContainsKey(btn))
                     {
-                        heatedUvIndex = i;
-                        firstHitBtn = btn;
+                        firstHitAt[btn] = now;
+                        firstHitUvIndex[btn] = i;
                     }
 
-                    // 記錄最後命中時間（給 missGrace 用）
-                    lastHitAt[btn] = Time.time;
-                    break;
+                    // 每幀命中都刷新最後命中時間
+                    lastHitAt[btn] = now;
+                    break; // 這個 UV 已命中一顆有效 Button，往下一個 UV
                 }
             }
         }
 
-        // 累積 / 觸發（同時取第一顆命中按鈕的累積秒數）
-        foreach (var btn in hitThisFrame)
+        // ---------- 以「時間差」更新目前持續按壓秒數（非累加） ----------
+        //（只要在追蹤中，就會隨時間前進；missGrace 內不中斷就不清零）
+        holdTimers.Clear();
+        foreach (var kv in firstHitAt)
         {
-            float current = 0f;
-            holdTimers.TryGetValue(btn, out current);
-
-            float updated = current + Time.deltaTime;
-
-            // 若這顆就是「第一個命中按鈕」，回傳它本幀累積到的秒數（在重置之前）
-            if (btn == firstHitBtn)
-                heatedHoldTimesPercentage = Mathf.Clamp((updated / holdTimeToClick) * 100, 0f, 100f);
-
-            if (autoClickOnHit && updated >= holdTimeToClick)
-            {
-                btn.onClick?.Invoke();
-                holdTimers[btn] = 0f; // 重置避免連點
-            }
-            else
-            {
-                holdTimers[btn] = updated;
-            }
+            var btn = kv.Key;
+            float started = kv.Value;
+            float held = Mathf.Max(0f, now - started);
+            holdTimers[btn] = held;
         }
 
-        // 清零：超過 missGrace 秒沒再命中才移除
-        var now = Time.time;
-        var toRemove = new List<Button>();
+        // ---------- 找出目前「hold 最久」的領先者，用於 UI 回傳 ----------
+        Button leader = null;
+        float bestHeld = -1f;
+        float bestLast = -1f;
+        int bestId = int.MaxValue;
+
         foreach (var kv in holdTimers)
         {
             var btn = kv.Key;
-            if (!hitThisFrame.Contains(btn))
+            float held = kv.Value;
+            float last = lastHitAt.TryGetValue(btn, out var l) ? l : 0f;
+            int id = btn != null ? btn.GetInstanceID() : int.MinValue;
+
+            bool better =
+                (held > bestHeld) ||
+                (Mathf.Approximately(held, bestHeld) && last > bestLast) ||
+                (Mathf.Approximately(held, bestHeld) && Mathf.Approximately(last, bestLast) && id < bestId);
+
+            if (better)
             {
-                if (!lastHitAt.TryGetValue(btn, out float last) || (now - last) > missGrace)
-                    toRemove.Add(btn);
+                leader = btn;
+                bestHeld = held;
+                bestLast = last;
+                bestId = id;
             }
         }
-        foreach (var b in toRemove)
+
+        if (leader != null)
         {
-            holdTimers.Remove(b);
-            lastHitAt.Remove(b);
+            // 百分比與 UV
+            heatedHoldTimesPercentage = Mathf.Clamp01(bestHeld / holdTimeToClick) * 100f;
+            if (firstHitUvIndex.TryGetValue(leader, out var idx)) heatedUvIndex = idx;
+            Debug.Log($"bestHeld:{bestHeld},heatedHoldTimesPercentage:{heatedHoldTimesPercentage}");
+            // ---------- 自動觸發：只允許一顆成功 ----------
+            if (autoClickOnHit && bestHeld >= holdTimeToClick)
+            {
+                leader.onClick?.Invoke();
+
+                // 觸發後清場，確保同一時刻只會有一顆成功
+                firstHitAt.Clear();
+                lastHitAt.Clear();
+                holdTimers.Clear();
+                firstHitUvIndex.Clear();
+                hitThisFrame.Clear();
+
+                // 觸發當幀，UI 你可選擇維持 100% 或由外層重繪
+            }
+        }
+        else
+        {
+            // 沒有任何候選 → 回傳預設
+            heatedUvIndex = -1;
+            heatedHoldTimesPercentage = 0f;
         }
     }
     // （可選）若你有清狀態函式，記得加上 lastHitAt 清空
