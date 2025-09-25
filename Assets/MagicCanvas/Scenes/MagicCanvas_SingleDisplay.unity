@@ -302,7 +302,7 @@ GameObject:
   - component: {fileID: 43592011}
   - component: {fileID: 43592010}
   m_Layer: 5
-  m_Name: Picture1Image
+  m_Name: Image
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -347,7 +347,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 420293288bf3a4d4e9621ceb5911d6e9, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 6326ee6c78d21324981a3d92b42cb078, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -960,7 +960,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u98A8    \u683C    2\u200B"
+  m_Text: "\u99A1"
 --- !u!222 &123134265
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1651,7 +1651,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 560, y: -567.5}
+  m_AnchoredPosition: {x: 560, y: -1106}
   m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &310166651
@@ -2105,7 +2105,7 @@ GameObject:
   - component: {fileID: 371280639}
   - component: {fileID: 371280638}
   m_Layer: 5
-  m_Name: Picture2Image
+  m_Name: Image
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2150,7 +2150,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 10c4c291782d28a44b23ff3e893ec54c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 330c9c5b0f216ad4d8d2c6817c8ae0ab, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2964,7 +2964,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &487806219
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4154,6 +4154,8 @@ MonoBehaviour:
   interactiveTag: InteractiveQuad
   paintingCollider: {fileID: 71994529}
   interactiveCollider: {fileID: 1803919593}
+  logFpsEachSecond: 1
+  logOnlyWhenValid: 1
 --- !u!1 &806433228
 GameObject:
   m_ObjectHideFlags: 0
@@ -4224,7 +4226,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u3010\u8ACB\u5C07\u624B\u638C\u505C\u7559\u5728\u559C\u6B61\u7684\u756B\u4F5C\u98A8\u683C\uFF0C\u76F4\u5230\u9032\u5EA6\u689D\u8DD1\u5B8C\u70BA\u6B62\u3011"
+  m_Text: "\u3010\u8ACB\u5C07\u624B\u638C\u505C\u7559\u5728\u559C\u6B61\u7684\u85DD\u8853\u5BB6\u98A8\u683C\uFF0C\u76F4\u5230\u9032\u5EA6\u689D\u8DD1\u5B8C\u70BA\u6B62\u3011"
 --- !u!222 &806433231
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4251,7 +4253,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &832920835
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4757,7 +4759,7 @@ MonoBehaviour:
   eventSystem: {fileID: 1989593071}
   holdTimeToClick: 2
   autoClickOnHit: 1
-  missGrace: 0.1
+  missGrace: 0.2
 --- !u!1 &936185912
 GameObject:
   m_ObjectHideFlags: 0
@@ -5429,7 +5431,7 @@ GameObject:
   - component: {fileID: 1134028425}
   - component: {fileID: 1134028424}
   m_Layer: 5
-  m_Name: Picture2Image
+  m_Name: Image
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5474,7 +5476,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 10c4c291782d28a44b23ff3e893ec54c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: f8dcfc22e474611428e6b59e6d3ac35d, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5791,7 +5793,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 0}
+  m_Texture: {fileID: 2800000, guid: d1f796a16fb6c0e45a5e2a02cddd58ea, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -6024,6 +6026,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sourceRawImage: {fileID: 1184856168}
   interactionImage: {fileID: 270765872}
+  autoDragDelay: 5
 --- !u!1 &1250577675
 GameObject:
   m_ObjectHideFlags: 0
@@ -7143,7 +7146,8 @@ MonoBehaviour:
   - {fileID: 1184856168}
   scratchCards:
   - {fileID: 1791305215}
-  clearThreshold: 0.6
+  ExperienceTimeLimit: 15
+  clearThreshold: 0.4
   revealHoldTime: 15
   restoreSpeed: 1
   brushTexture: {fileID: 2800000, guid: 686456ee6d74bac42a471c84efb3acaa, type: 3}
@@ -7614,7 +7618,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u98A8    \u683C    3"
+  m_Text: ELE
 --- !u!222 &1593378517
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8030,7 +8034,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u98A8    \u683C    4"
+  m_Text: Milky
 --- !u!222 &1667591847
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8523,7 +8527,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -560, y: 150}
+  m_AnchoredPosition: {x: -560, y: 685}
   m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1718026743
@@ -8786,7 +8790,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1784048525
 RectTransform:
   m_ObjectHideFlags: 0
@@ -9491,6 +9495,7 @@ MonoBehaviour:
   waitingStyleCtrl: {fileID: 2037239878}
   finishHintCtrl: {fileID: 1367642485}
   dragPicturesHintCtrl: {fileID: 1202412565}
+  scratchManager: {fileID: 1516002707}
 --- !u!1 &1910725978
 GameObject:
   m_ObjectHideFlags: 0
@@ -9503,7 +9508,7 @@ GameObject:
   - component: {fileID: 1910725981}
   - component: {fileID: 1910725980}
   m_Layer: 5
-  m_Name: Picture2Image
+  m_Name: Image
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9548,7 +9553,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 10c4c291782d28a44b23ff3e893ec54c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ac81270375a14214392d4ae78b23053a, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -9930,7 +9935,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1979606870
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10833,7 +10838,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u98A8    \u683C    1\u200B"
+  m_Text: "\u8C93\u8A2D"
 --- !u!222 &2064225423
 CanvasRenderer:
   m_ObjectHideFlags: 0

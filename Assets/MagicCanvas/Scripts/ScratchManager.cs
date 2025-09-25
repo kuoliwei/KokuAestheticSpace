@@ -10,12 +10,13 @@ public class ScratchManager : MonoBehaviour
     public List<Texture> backgroundImages;
     public List<RawImage> backgroundRenderers;
     public List<ScratchCard> scratchCards;
-    public float clearThreshold = 0.6f;
-    public float revealHoldTime = 15f;
-    public float restoreSpeed = 1f;
+    public float ExperienceTimeLimit;
+    public float clearThreshold;
+    public float revealHoldTime;
+    public float restoreSpeed;
     public Texture brushTexture;
     public Material eraseMaterial;
-    public float brushSize = 64f;
+    public float brushSize;
 
     [Header("Koku Aesthetic UI")]
     [SerializeField] private RawImage previewImage; // TakingPhotoPanel/RawImage（即時預覽）
@@ -36,8 +37,9 @@ public class ScratchManager : MonoBehaviour
         {
             card.Init();
             card.SetBrush(brushTexture, eraseMaterial, brushSize);
+            card.SetMask(maskImages[0]);
+            card.ResetScratch();
         }
-        ShowImageAt(0);
     }
 
     // === 可庫美學：開始預覽 ===
@@ -83,7 +85,8 @@ public class ScratchManager : MonoBehaviour
         currentIndex = index;
         imageFullyRevealed = false;
 
-        foreach (var routine in restoreRoutines) if (routine != null) StopCoroutine(routine);
+        foreach (var r in restoreRoutines)
+            if (r != null) StopCoroutine(r);
         restoreRoutines.Clear();
         revealedCards.Clear();
 
@@ -94,7 +97,12 @@ public class ScratchManager : MonoBehaviour
             card.ResetScratch();
         }
     }
-
+    public void StartCountingExperienceTime()
+    {
+        // 啟動超時計時
+        var routine = StartCoroutine(ForceRevealAfterDelay(ExperienceTimeLimit));
+        restoreRoutines.Add(routine);
+    }
     private IEnumerator AutoRestoreAfterDelay(ScratchCard target)
     {
         yield return new WaitForSeconds(revealHoldTime);
@@ -110,7 +118,25 @@ public class ScratchManager : MonoBehaviour
         while (randomIndex == currentIndex);
         return randomIndex;
     }
+    private IEnumerator ForceRevealAfterDelay(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
 
+        if (!imageFullyRevealed)
+        {
+            // 強制把所有卡揭露
+            foreach (var card in scratchCards)
+            {
+                card.ShowFullImage();
+                revealedCards.Add(card);
+            }
+
+            imageFullyRevealed = true;
+
+            if (flow != null)
+                flow.Sys_OnScratchRevealComplete();
+        }
+    }
     private void Update()
     {
         if (imageFullyRevealed) return;

@@ -12,8 +12,10 @@ public class WebSocketConnectUI : MonoBehaviour
     public InputField portInput;
     public Button connectButton;
 
-    private string ip = "127.0.0.1";
-    private string port = "9999";
+    //private string ip = "127.0.0.1";
+    //private string port = "9999";
+    private string ip = "192.168.20.6";
+    private string port = "8765";
     //private string ip = "10.66.66.57";
     //private string port = "8765";
     //private string ip = "10.66.66.51";

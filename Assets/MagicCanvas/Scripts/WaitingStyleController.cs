@@ -68,8 +68,9 @@ public class WaitingStyleController : MonoBehaviour
                 p =>
                 {
                     // p: 0~100
-                    SetProgressText($"{Mathf.RoundToInt(p)}%");
-                    progressCircleController.SetByPercentage(Mathf.RoundToInt(p));
+                    fakeProgress = (int)p > fakeProgress ? (int)p : fakeProgress;
+                    SetProgressText($"{fakeProgress}%");
+                    progressCircleController.SetByPercentage(fakeProgress);
                 },
                 () =>
                 {

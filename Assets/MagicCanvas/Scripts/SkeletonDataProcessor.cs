@@ -43,6 +43,16 @@ public class SkeletonDataProcessor : MonoBehaviour
     [SerializeField] private Collider interactiveCollider;            // [NEW]
     // [NEW] 命中哪一塊的列舉
     private enum QuadType { None, Painting, Interactive } // [NEW]
+
+    // [FPS] 監測：每秒統計一次
+    [Header("骨架頻率統計")]
+    [SerializeField] private bool logFpsEachSecond = true;   // 打開就每秒列印一次
+    [SerializeField] private bool logOnlyWhenValid = true;  // 只在「有效幀>0」時列印
+
+    // [FPS] 內部累計
+    private int _recvFramesThisSec = 0;      // 本秒收到的總幀數（含無人）
+    private int _validFramesThisSec = 0;     // 本秒「有效（有人）」的幀數
+    private float _fpsWindowStart = 0f;      // 本秒起始時間
     // ----- 內部狀態 -----
     class SkeletonVisual
     {
@@ -64,9 +74,28 @@ public class SkeletonDataProcessor : MonoBehaviour
         var seen = new HashSet<int>();
         var brushList = new List<BrushData>(); // ← 本幀所有手腕命中的 UV 都收這裡
         var effectList = new List<Vector2>();       // [NEW] InteractiveQuad → 用來互動/特效/按鈕
+                                                    // [FPS] 累計「收到幀數」
+        _recvFramesThisSec++;
 
+        if (frame == null || frame.persons == null)
+            return;
         bool anyPerson = frame.persons.Count > 0;
+        // [FPS] 若為有效幀則累計
+        if (anyPerson) _validFramesThisSec++;
 
+        // [FPS] 每秒輸出一次
+        if (logFpsEachSecond && Time.time - _fpsWindowStart >= 1f)
+        {
+            if (!logOnlyWhenValid || _validFramesThisSec > 0)
+            {
+                Debug.Log($"[Pose/FPS] recv={_recvFramesThisSec}/s, valid={_validFramesThisSec}/s");
+            }
+
+            // 滾動到下一秒視窗
+            _fpsWindowStart += 1f;  // 防止累積誤差；或用 _fpsWindowStart = Time.time;
+            _recvFramesThisSec = 0;
+            _validFramesThisSec = 0;
+        }
         // ---------- 可視化 & 列印 ----------
         for (int p = 0; p < frame.persons.Count; p++)
         {
