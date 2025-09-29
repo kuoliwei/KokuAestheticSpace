@@ -17,9 +17,9 @@ public class TakingPhotoController : MonoBehaviour
 
     [Header("Countdown")]
     [SerializeField] private Text countdownText;     // 指到面板上的 Text（可選）
-    [SerializeField] private int countdownSeconds = 5;
+    [SerializeField] private int countdownSeconds;
     // 既有欄位略…
-    [SerializeField] private int aftershotSeconds = 2;   // 拍完後停留秒數（預設 1 秒）
+    [SerializeField] private int aftershotSeconds;   // 拍完後停留秒數（預設 1 秒）
     private Coroutine aftershotRoutine;                  // 專用：拍後倒數
     private Texture2D lastPhoto;
     public Texture2D LastPhoto => lastPhoto;  // 需要時可取用
@@ -106,8 +106,10 @@ public class TakingPhotoController : MonoBehaviour
 
         webCam.CloseCamera();
 
+
         if (lastPhoto != null) Destroy(lastPhoto);
-        lastPhoto = photo;
+        lastPhoto = RotateTexture(photo, false); // true = 順時針90度
+        Destroy(photo); // 用不到原圖可以釋放掉
 
         previewRawImage.texture = lastPhoto;
         SaveTextureAsJPG(lastPhoto);
@@ -154,5 +156,39 @@ public class TakingPhotoController : MonoBehaviour
         {
             Debug.LogError($"存檔失敗：{ex.Message}");
         }
+    }
+    private Texture2D RotateTexture(Texture2D src, bool clockwise)
+    {
+        int w = src.width;
+        int h = src.height;
+        Texture2D result = new Texture2D(h, w, src.format, false);
+
+        Color[] srcPixels = src.GetPixels();
+        Color[] dstPixels = new Color[srcPixels.Length];
+
+        for (int x = 0; x < w; x++)
+        {
+            for (int y = 0; y < h; y++)
+            {
+                int srcIndex = y * w + x;
+                int dstIndex;
+
+                if (clockwise)
+                {
+                    // 原本的公式把人倒過來了，這裡修正
+                    dstIndex = (h - 1 - y) + x * h; // ← 順時針 90°
+                }
+                else
+                {
+                    dstIndex = y + (w - 1 - x) * h; // ← 逆時針 90°
+                }
+
+                dstPixels[dstIndex] = srcPixels[srcIndex];
+            }
+        }
+
+        result.SetPixels(dstPixels);
+        result.Apply();
+        return result;
     }
 }

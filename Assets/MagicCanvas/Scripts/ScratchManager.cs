@@ -41,7 +41,11 @@ public class ScratchManager : MonoBehaviour
             card.ResetScratch();
         }
     }
-
+    public void ResetImageFullyRevealed()
+    {
+        imageFullyRevealed = false;
+        Debug.Log($"重置imageFullyRevealed：{imageFullyRevealed}");
+    }
     // === 可庫美學：開始預覽 ===
     public void UI_StartPreview()
     {
@@ -85,9 +89,7 @@ public class ScratchManager : MonoBehaviour
         currentIndex = index;
         imageFullyRevealed = false;
 
-        foreach (var r in restoreRoutines)
-            if (r != null) StopCoroutine(r);
-        restoreRoutines.Clear();
+        StopAndClearAllCoroutine();
         revealedCards.Clear();
 
         foreach (var renderer in backgroundRenderers) renderer.texture = backgroundImages[index];
@@ -102,6 +104,7 @@ public class ScratchManager : MonoBehaviour
         // 啟動超時計時
         var routine = StartCoroutine(ForceRevealAfterDelay(ExperienceTimeLimit));
         restoreRoutines.Add(routine);
+        Debug.Log("啟動超時計時");
     }
     private IEnumerator AutoRestoreAfterDelay(ScratchCard target)
     {
@@ -122,6 +125,8 @@ public class ScratchManager : MonoBehaviour
     {
         yield return new WaitForSeconds(seconds);
 
+        Debug.Log(imageFullyRevealed);
+
         if (!imageFullyRevealed)
         {
             // 強制把所有卡揭露
@@ -133,8 +138,11 @@ public class ScratchManager : MonoBehaviour
 
             imageFullyRevealed = true;
 
+            StopAndClearAllCoroutine();
+
             if (flow != null)
                 flow.Sys_OnScratchRevealComplete();
+            Debug.Log("強制揭露底圖");
         }
     }
     private void Update()
@@ -151,12 +159,25 @@ public class ScratchManager : MonoBehaviour
                 if (revealedCards.Count >= scratchCards.Count && !imageFullyRevealed)
                 {
                     imageFullyRevealed = true;
+
+                    StopAndClearAllCoroutine();
+
                     if (flow != null) flow.Sys_OnScratchRevealComplete();
                 }
-                //var routine = StartCoroutine(AutoRestoreAfterDelay(card));
-                //restoreRoutines.Add(routine);
             }
-            if (revealedCards.Count >= scratchCards.Count) imageFullyRevealed = true;
         }
+    }
+    void StopAndClearAllCoroutine()
+    {
+        foreach (var r in restoreRoutines)
+        {
+            if (r != null)
+            {
+                Debug.Log($"停止協程：{r}");
+                StopCoroutine(r);
+            } 
+        }
+        restoreRoutines.Clear();
+        Debug.Log("清理所有運行中的Coroutine");
     }
 }

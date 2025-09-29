@@ -267,6 +267,7 @@ public class PanelFlowController : MonoBehaviour
                 // 只顯示底圖與刮刮樂遮罩
                 texHiddenImagePanel.SetActive(true);
                 scratchSurfacePanel.SetActive(true);
+                scratchManager.ResetImageFullyRevealed();
                 scratchManager.StartCountingExperienceTime();
                 break;
 

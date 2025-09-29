@@ -33,8 +33,6 @@ public class UILaserButtonInteractor : MonoBehaviour
         uiRectTransform = rt; // [NEW]
     }
 
-
-
     void Reset()
     {
         raycaster = GetComponentInParent<GraphicRaycaster>();
@@ -77,6 +75,12 @@ public class UILaserButtonInteractor : MonoBehaviour
         // 1) 命中的累加計時
         foreach (var btn in hitThisFrame)
         {
+            Debug.Log(btn.transform.Find("After"));
+            if (btn.transform.Find("After") != null)
+            {
+                btn.transform.Find("After").gameObject.SetActive(true);
+            }
+
             if (!holdTimers.ContainsKey(btn)) holdTimers[btn] = 0f;
             holdTimers[btn] += Time.deltaTime;
 
@@ -84,6 +88,10 @@ public class UILaserButtonInteractor : MonoBehaviour
             {
                 holdTimers[btn] = 0f; // 重置避免連點
                 btn.onClick?.Invoke();
+                if (btn.transform.Find("After") != null)
+                {
+                    btn.transform.Find("After").gameObject.SetActive(false);
+                }
             }
         }
 
@@ -98,6 +106,10 @@ public class UILaserButtonInteractor : MonoBehaviour
                 // 沒在本幀命中 → 檢查寬限
                 if (!lastHitAt.TryGetValue(btn, out float last) || (now - last) > missGrace)
                 {
+                    if (btn.transform.Find("After") != null)
+                    {
+                        btn.transform.Find("After").gameObject.SetActive(false);
+                    }
                     toRemove.Add(btn);
                 }
             }
@@ -169,6 +181,10 @@ public class UILaserButtonInteractor : MonoBehaviour
                 holdTimers.Remove(btn);
                 firstHitUvIndex.Remove(btn);
                 Debug.Log($"now:{now}, last:{last}, {now - last}>{missGrace},超時");
+                if (btn.transform.Find("After") != null)
+                {
+                    btn.transform.Find("After").gameObject.SetActive(false);
+                }
             }
             Debug.Log($"now:{now}, last:{last}");
         }
@@ -197,6 +213,10 @@ public class UILaserButtonInteractor : MonoBehaviour
                 if (btn != null && btn.interactable && btn.gameObject.activeInHierarchy)
                 {
                     hitThisFrame.Add(btn);
+                    if (btn.transform.Find("After") != null)
+                    {
+                        btn.transform.Find("After").gameObject.SetActive(true);
+                    }
 
                     // 第一次被擊中 → 建檔 firstHitAt / firstHitUvIndex
                     if (!firstHitAt.ContainsKey(btn))
@@ -261,6 +281,13 @@ public class UILaserButtonInteractor : MonoBehaviour
             {
                 leader.onClick?.Invoke();
 
+                foreach(Button button in firstHitAt.Keys)
+                {
+                    if (button.transform.Find("After") != null)
+                    {
+                        button.transform.Find("After").gameObject.SetActive(false);
+                    }
+                }
                 // 觸發後清場，確保同一時刻只會有一顆成功
                 firstHitAt.Clear();
                 lastHitAt.Clear();

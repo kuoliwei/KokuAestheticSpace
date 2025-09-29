@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using PoseTypes; // JointId / FrameSample / PersonSkeleton
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
-using PoseTypes; // JointId / FrameSample / PersonSkeleton
 
 public class SkeletonDataProcessor : MonoBehaviour
 {
@@ -65,6 +66,9 @@ public class SkeletonDataProcessor : MonoBehaviour
     private readonly Dictionary<int, SkeletonVisual> visuals = new Dictionary<int, SkeletonVisual>();
     private readonly List<int> _tmpToRemove = new List<int>();
 
+    // [NEW] 用來記錄有效骨架幀間的間隔
+    private float _lastValidFrameTime = -1f;         // 上一筆有效骨架時間
+    private readonly List<float> _validIntervals = new List<float>(); // 本秒內所有間隔
     /// <summary>接收一幀骨架資料：更新/建立/刪除可視化，並（可選）列印到 Console。</summary>
     public void HandleSkeletonFrame(FrameSample frame)
     {
@@ -81,18 +85,36 @@ public class SkeletonDataProcessor : MonoBehaviour
             return;
         bool anyPerson = frame.persons.Count > 0;
         // [FPS] 若為有效幀則累計
-        if (anyPerson) _validFramesThisSec++;
+        if (anyPerson)
+        {
+            _validFramesThisSec++;
+
+            // [NEW] 計算間隔並存入 list
+            if (_lastValidFrameTime > 0f)
+            {
+                float interval = Time.time - _lastValidFrameTime;
+                _validIntervals.Add(interval);
+            }
+            _lastValidFrameTime = Time.time;
+        }
 
         // [FPS] 每秒輸出一次
         if (logFpsEachSecond && Time.time - _fpsWindowStart >= 1f)
         {
             if (!logOnlyWhenValid || _validFramesThisSec > 0)
             {
-                Debug.Log($"[Pose/FPS] recv={_recvFramesThisSec}/s, valid={_validFramesThisSec}/s");
+                string intervalsStr = _validIntervals.Count > 0
+                    ? string.Join(", ", _validIntervals.Select(v => v.ToString("F2")))
+                    : "N/A";
+
+                Debug.Log($"[Pose/FPS] recv={_recvFramesThisSec}/s, valid={_validFramesThisSec}/s, intervals=[{intervalsStr}]");
             }
 
+            // [NEW] 輸出後清空
+            _validIntervals.Clear();
+
             // 滾動到下一秒視窗
-            _fpsWindowStart += 1f;  // 防止累積誤差；或用 _fpsWindowStart = Time.time;
+            _fpsWindowStart += 1f;
             _recvFramesThisSec = 0;
             _validFramesThisSec = 0;
         }

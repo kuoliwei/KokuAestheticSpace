@@ -13,10 +13,18 @@ public class DragPicturesHintController : MonoBehaviour
     private bool alreadyDragged = false;
     // 當搬移完成 → 通知 PanelFlowController
     public event Action OnDragSimulated;
+    private Coroutine coroutine;
     private void OnEnable()
     {
         alreadyDragged = false;
-        StartCoroutine(AutoDragAfterDelay(autoDragDelay));
+
+        if (coroutine != null)
+        {
+            StopCoroutine(coroutine);
+            coroutine = null;
+        }
+
+        coroutine = StartCoroutine(AutoDragAfterDelay(autoDragDelay));
     }
     private System.Collections.IEnumerator AutoDragAfterDelay(float seconds)
     {
@@ -47,6 +55,12 @@ public class DragPicturesHintController : MonoBehaviour
         else
         {
             Debug.LogWarning("[DragPicturesHintController] 尚未指派 RawImage 或 InteractionImage！");
+        }
+
+        if (coroutine != null)
+        {
+            StopCoroutine(coroutine);
+            coroutine = null;
         }
 
         OnDragSimulated?.Invoke();

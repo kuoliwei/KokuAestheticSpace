@@ -27,6 +27,21 @@ public class WaitingStyleController : MonoBehaviour
     public event Action OnDownloadSucceeded;
     public event Action<string> OnDownloadFailed;
 
+    private void OnEnable()
+    {
+        //progressCircleController.SetByPercentage(0);
+        fakeProgress = 0;
+        progressCircleController.SetByPercentage(fakeProgress);
+        Debug.Log($"重置進度為{fakeProgress}");
+    }
+    private void OnDisable()
+    {
+        //progressCircleController.SetByPercentage(0);
+        fakeProgress = 0;
+        progressCircleController.SetByPercentage(fakeProgress);
+        Debug.Log($"重置進度為{fakeProgress}");
+    }
+
     // 由狀態機在進入 Waiting 面板後呼叫：只開始「查進度」
     public void BeginTracking(string taskId)
     {
