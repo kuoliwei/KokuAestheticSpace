@@ -1,4 +1,5 @@
 ﻿using PoseTypes; // JointId / FrameSample / PersonSkeleton
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -107,7 +108,7 @@ public class SkeletonDataProcessor : MonoBehaviour
                     ? string.Join(", ", _validIntervals.Select(v => v.ToString("F2")))
                     : "N/A";
 
-                Debug.Log($"[Pose/FPS] recv={_recvFramesThisSec}/s, valid={_validFramesThisSec}/s, intervals=[{intervalsStr}]");
+                //Debug.Log($"[Pose/FPS] recv={_recvFramesThisSec}/s, valid={_validFramesThisSec}/s, intervals=[{intervalsStr}]");
             }
 
             // [NEW] 輸出後清空
@@ -220,6 +221,15 @@ public class SkeletonDataProcessor : MonoBehaviour
             if (effectList.Count > 0)
                 brushProcessor.HandleEffectUV(effectList);     // [NEW] Interactive：互動/按鈕/特效
         }
+
+        // 可視化完成後才計算延遲
+        DateTime now = DateTime.Now;
+
+        // 時分秒用 DateTime，秒的小數部分自己拼上去
+        string timeStr = $"{now:HH:mm}:{now.Second + now.Millisecond / 1000.0:F6}";
+        float delay = (Time.realtimeSinceStartup - frame.recvTime) * 1000f;
+        Debug.Log($"[Latency] Frame {frame.frameIndex} 完整顯示延遲 = {delay:F1} ms"+ "\n$\"[Time] 收到時間 {timeStr}\"");
+
         // 4) 若開了「有人才列印」且這幀沒人，印一行提示
         if (enableConsoleLog && !anyPerson && !logOnlyWhenSomeonePresent)
         {

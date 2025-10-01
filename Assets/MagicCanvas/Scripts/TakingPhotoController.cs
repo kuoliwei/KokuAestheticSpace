@@ -21,8 +21,10 @@ public class TakingPhotoController : MonoBehaviour
     // 既有欄位略…
     [SerializeField] private int aftershotSeconds;   // 拍完後停留秒數（預設 1 秒）
     private Coroutine aftershotRoutine;                  // 專用：拍後倒數
-    private Texture2D lastPhoto;
-    public Texture2D LastPhoto => lastPhoto;  // 需要時可取用
+    private Texture2D lastPhotoOriginal;  // 預覽用
+    private Texture2D lastPhotoRotated;   // 上傳/存檔用
+
+    public Texture2D LastPhotoRotated => lastPhotoRotated; // 給外部取用（伺服器傳送）
     private Coroutine countdownRoutine;
 
     // 由 PanelFlowController 在「進入 TakingPhoto 狀態」時呼叫
@@ -106,13 +108,19 @@ public class TakingPhotoController : MonoBehaviour
 
         webCam.CloseCamera();
 
+        // 清理舊的
+        if (lastPhotoOriginal != null) Destroy(lastPhotoOriginal);
+        if (lastPhotoRotated != null) Destroy(lastPhotoRotated);
 
-        if (lastPhoto != null) Destroy(lastPhoto);
-        lastPhoto = RotateTexture(photo, false); // true = 順時針90度
-        Destroy(photo); // 用不到原圖可以釋放掉
+        // 原始 → 用來預覽
+        lastPhotoOriginal = photo;
+        previewRawImage.texture = lastPhotoOriginal;
 
-        previewRawImage.texture = lastPhoto;
-        SaveTextureAsJPG(lastPhoto);
+        // 旋轉 → 用來送伺服器
+        lastPhotoRotated = RotateTexture(photo, false);
+
+        // 存檔 / 上傳用旋轉後的版本
+        SaveTextureAsJPG(lastPhotoRotated);
         StartAftershotDelay();
     }
     public void StartAftershotDelay(int seconds = -1)

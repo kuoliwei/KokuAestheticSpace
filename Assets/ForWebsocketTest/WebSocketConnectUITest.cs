@@ -1,9 +1,10 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Net;
-using System;
 
-public class WebSocketConnectUI : MonoBehaviour
+public class WebSocketConnectUITest : MonoBehaviour
 {
     [Header("UI 元件")]
     public Text message;
@@ -21,7 +22,7 @@ public class WebSocketConnectUI : MonoBehaviour
     //private string ip = "10.66.66.51";
     //private string port = "8765";
     [Header("連線接收器")]
-    public WebSocketMessageReceiverAsync receiver;
+    public WebSocketMessageReceiveTest receiver;
     public event Action<bool, string> OnConnectResult; // true=成功；false=失敗；string=訊息
     private void Start()
     {

@@ -102,7 +102,7 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
                 OnPoseFrameReceived.Invoke(frame);
                 processedPose++;
             }
-            //Debug.Log($"本幀處理{processedPose}筆frame資料");
+            //Debug.Log($"本幀處理{processedPose}筆frame資料，佇列共有{poseMainThreadQueue.Count}筆資料");
             // 需要監控時可印出 processedPose
         }
         // 監控
@@ -187,6 +187,8 @@ public class WebSocketMessageReceiverAsync : MonoBehaviour
             }
 
             var frame = new PoseTypes.FrameSample(frameIndex);
+            frame.recvTime = Time.realtimeSinceStartup; // 這是 Unity 收到並 parse 完的時間
+
 
             for (int personId = 0; personId < personsArray.Count; personId++)
             {

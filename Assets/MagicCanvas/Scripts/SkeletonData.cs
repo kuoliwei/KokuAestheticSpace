@@ -99,6 +99,9 @@ namespace PoseTypes
         public int frameIndex;
         public List<PersonSkeleton> persons = new List<PersonSkeleton>();
 
+        // Unity 收到時間
+        public float recvTime;
+
         public FrameSample() { }
         public FrameSample(int frameIndex) { this.frameIndex = frameIndex; }
     }

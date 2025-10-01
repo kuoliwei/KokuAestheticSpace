@@ -53,7 +53,7 @@ public class PanelFlowController : MonoBehaviour
     [SerializeField] private StyleTransformFinishHintController finishHintCtrl;
     [SerializeField] private DragPicturesHintController dragPicturesHintCtrl;
     [SerializeField] private ScratchManager scratchManager;
-    
+    [SerializeField] private HandReferenceDotSpawner refDotSpawner; // 參考紅點顯示
 
 
     void Start()
@@ -225,6 +225,7 @@ public class PanelFlowController : MonoBehaviour
 
             case FlowState.Illustrate:
                 illustratePanel.SetActive(true);
+                refDotSpawner.ChangeSprite(HandReferenceDotSpawner.dotSprites.hand);
                 break;
 
             case FlowState.AuthorizationModal:
@@ -246,7 +247,7 @@ public class PanelFlowController : MonoBehaviour
             case FlowState.ChooseStyle:
                 chooseStylePanel.SetActive(true);
                 if (chooseStyleCtrl != null && takingPhotoCtrl != null)
-                    chooseStyleCtrl.SetSourcePhoto(takingPhotoCtrl.LastPhoto); // ← 關鍵：給來源照片
+                    chooseStyleCtrl.SetSourcePhoto(takingPhotoCtrl.LastPhotoRotated); // ← 關鍵：給來源照片
                 break;
 
             case FlowState.WaitingTransform:
@@ -269,9 +270,11 @@ public class PanelFlowController : MonoBehaviour
                 scratchSurfacePanel.SetActive(true);
                 scratchManager.ResetImageFullyRevealed();
                 scratchManager.StartCountingExperienceTime();
+                refDotSpawner.ChangeSprite(HandReferenceDotSpawner.dotSprites.translucentRound);
                 break;
 
             case FlowState.DragPicturesHint:
+                refDotSpawner.ChangeSprite(HandReferenceDotSpawner.dotSprites.hand);
                 dragPicturesHintPanel.SetActive(true);
                 texHiddenImagePanel.SetActive(true);
                 break;
@@ -342,7 +345,9 @@ public class PanelFlowController : MonoBehaviour
         // 顯示錯誤訊息，停留在 ChooseStylePanel
         chooseStyleCtrl.ShowResult($"任務建立失敗：{reason}");
 
-        //GoTo(FlowState.WaitingTransform); // 測試用，即使失敗也進下一步
+        {// 測試用，即使失敗也進下一步
+            GoTo(FlowState.WaitingTransform);
+        }
     }
 
     // 等待面板：進度 = 100% → 進入下載階段
