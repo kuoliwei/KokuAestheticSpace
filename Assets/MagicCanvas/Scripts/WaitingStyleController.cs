@@ -77,46 +77,46 @@ public class WaitingStyleController : MonoBehaviour
     {
         bool completed = false;
 
-        //// 只輪詢進度，不下載
-        //{  //  呼叫檢查轉換進度的API
-        //    yield return styleHandler.CheckProgress(
-        //        p =>
-        //        {
-        //            // p: 0~100
-        //            fakeProgress = (int)p > fakeProgress ? (int)p : fakeProgress;
-        //            SetProgressText($"{fakeProgress}%");
-        //            progressCircleController.SetByPercentage(fakeProgress);
-        //        },
-        //        () =>
-        //        {
-        //            completed = true;
-        //            SetProgressText("100%");
-        //            progressCircleController.SetByPercentage(100);
-        //        });
-        //}
-
-        {  //  用於測試百分比顯示
-            if (fakeProgress < 100)
-            {
-                SetProgressText($"{fakeProgress.ToString()}%");
-                progressCircleController.SetByPercentage(fakeProgress);
-                OnProgressNotCompleted?.Invoke();
-                fakeProgress = Mathf.Clamp(fakeProgress + 29, 0, 100);
-                yield return new WaitForSeconds(1);
-                yield break;
-            }
-            else if (fakeProgress >= 100)
-            {
-                SetProgressText($"{100.ToString()}%");
-                progressCircleController.SetByPercentage(100);
-                progressRoutine = null;
-                progressCompleted = true;
-                OnProgressCompleted?.Invoke();
-                fakeProgress = 0;
-                yield return new WaitForSeconds(1);
-                yield break;
-            }
+        // 只輪詢進度，不下載
+        {  //  呼叫檢查轉換進度的API
+            yield return styleHandler.CheckProgress(
+                p =>
+                {
+                    // p: 0~100
+                    fakeProgress = (int)p > fakeProgress ? (int)p : fakeProgress;
+                    SetProgressText($"{fakeProgress}%");
+                    progressCircleController.SetByPercentage(fakeProgress);
+                },
+                () =>
+                {
+                    completed = true;
+                    SetProgressText("100%");
+                    progressCircleController.SetByPercentage(100);
+                });
         }
+
+        //{  //  用於測試百分比顯示
+        //    if (fakeProgress < 100)
+        //    {
+        //        SetProgressText($"{fakeProgress.ToString()}%");
+        //        progressCircleController.SetByPercentage(fakeProgress);
+        //        OnProgressNotCompleted?.Invoke();
+        //        fakeProgress = Mathf.Clamp(fakeProgress + 29, 0, 100);
+        //        yield return new WaitForSeconds(1);
+        //        yield break;
+        //    }
+        //    else if (fakeProgress >= 100)
+        //    {
+        //        SetProgressText($"{100.ToString()}%");
+        //        progressCircleController.SetByPercentage(100);
+        //        progressRoutine = null;
+        //        progressCompleted = true;
+        //        OnProgressCompleted?.Invoke();
+        //        fakeProgress = 0;
+        //        yield return new WaitForSeconds(1);
+        //        yield break;
+        //    }
+        //}
 
         // 結束輪詢
         progressRoutine = null;
@@ -137,13 +137,13 @@ public class WaitingStyleController : MonoBehaviour
     {
         Texture2D result = null;
 
-        {  //  測試用，直接讀取圖片並放至resultRawImage
-            string filePath = Path.Combine(Application.dataPath, "test.jpg");
-            result = LoadJPGAsTexture(filePath);
-            if (resultRawImage != null) resultRawImage.texture = result;
-            OnDownloadSucceeded?.Invoke();
-            yield break;
-        }
+        //{  //  測試用，直接讀取圖片並放至resultRawImage
+        //    string filePath = Path.Combine(Application.dataPath, "test.jpg");
+        //    result = LoadJPGAsTexture(filePath);
+        //    if (resultRawImage != null) resultRawImage.texture = result;
+        //    OnDownloadSucceeded?.Invoke();
+        //    yield break;
+        //}
 
         yield return styleHandler.DownloadImage(tex => result = tex);
         downloadRoutine = null;

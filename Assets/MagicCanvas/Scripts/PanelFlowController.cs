@@ -268,7 +268,7 @@ public class PanelFlowController : MonoBehaviour
                 // 只顯示底圖與刮刮樂遮罩
                 texHiddenImagePanel.SetActive(true);
                 scratchSurfacePanel.SetActive(true);
-                scratchManager.ResetImageFullyRevealed();
+                //scratchManager.ResetImageFullyRevealed();
                 scratchManager.StartCountingExperienceTime();
                 refDotSpawner.ChangeSprite(HandReferenceDotSpawner.dotSprites.translucentRound);
                 break;
@@ -345,9 +345,9 @@ public class PanelFlowController : MonoBehaviour
         // 顯示錯誤訊息，停留在 ChooseStylePanel
         chooseStyleCtrl.ShowResult($"任務建立失敗：{reason}");
 
-        {// 測試用，即使失敗也進下一步
-            GoTo(FlowState.WaitingTransform);
-        }
+        //{// 測試用，即使失敗也進下一步
+        //    GoTo(FlowState.WaitingTransform);
+        //}
     }
 
     // 等待面板：進度 = 100% → 進入下載階段

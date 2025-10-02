@@ -16,17 +16,17 @@ public class SwitchPanelTest : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //if (Input.GetKeyDown(KeyCode.O))
-        //{
-        //    Debug.Log("按下O");
-        //    //WebcamDisplay.SetActive(true);
-        //    takePhotoTest.Enter();
-        //}
-        //if (Input.GetKeyDown(KeyCode.C))
-        //{
-        //    Debug.Log("按下C");
-        //    takePhotoTest.Exit();
-        //    //WebcamDisplay.SetActive(false);
-        //}
+        if (Input.GetKeyDown(KeyCode.O))
+        {
+            Debug.Log("按下O");
+            WebcamDisplay.SetActive(true);
+            takePhotoTest.Enter();
+        }
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            Debug.Log("按下C");
+            takePhotoTest.Exit();
+            WebcamDisplay.SetActive(false);
+        }
     }
 }

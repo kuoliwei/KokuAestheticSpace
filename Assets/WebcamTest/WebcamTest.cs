@@ -11,7 +11,7 @@ public class WebcamTest : MonoBehaviour
     private WebCamTexture webCamTexture;
     public WebCamTexture PreviewTexture => webCamTexture; // 讓外部綁到 RawImage.texture
 
-    [SerializeField] private RawImage previewRawImage;
+    //[SerializeField] private RawImage previewRawImage;
     // Start is called before the first frame update
     void Start()
     {
@@ -58,36 +58,36 @@ public class WebcamTest : MonoBehaviour
 
         webCamTexture = new WebCamTexture(selectedDeviceName, 1920, 1080);
         //webCamTexture = new WebCamTexture("Intel(R) RealSense(TM) Depth Camera 455  RGB", 1920, 1080);
-        previewRawImage.texture = webCamTexture;
+        //previewRawImage.texture = webCamTexture;
 
-
-        //dropdown.gameObject.SetActive(false);
-    }
-    public void DisplayOut()
-    {
         webCamTexture.Play();
+        dropdown.gameObject.SetActive(false);
     }
+    //public void DisplayOut()
+    //{
+    //    webCamTexture.Play();
+    //}
     public void CloseCamera()
     {
         Debug.Log("呼叫CloseCamera()");
-        if (webCamTexture != null && webCamTexture.isPlaying) webCamTexture.Stop();
+        //if (webCamTexture != null && webCamTexture.isPlaying) webCamTexture.Stop();
 
         //webCamTexture.Stop();
     }
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.O))
-        {
-            OpenCamera();
-        }
-        if (Input.GetKeyDown(KeyCode.D))
-        {
-            DisplayOut();
-        }
-        if (Input.GetKeyDown(KeyCode.C))
-        {
-            CloseCamera();
-        }
+        //if (Input.GetKeyDown(KeyCode.O))
+        //{
+        //    OpenCamera();
+        //}
+        //if (Input.GetKeyDown(KeyCode.D))
+        //{
+        //    DisplayOut();
+        //}
+        //if (Input.GetKeyDown(KeyCode.C))
+        //{
+        //    CloseCamera();
+        //}
     }
 }

@@ -27,7 +27,7 @@ public class ScratchManager : MonoBehaviour
     [SerializeField] private PanelFlowController flow; // 新增
 
     private int currentIndex = 0;
-    private bool imageFullyRevealed = false;
+    //private bool imageFullyRevealed = false;
     private readonly List<Coroutine> restoreRoutines = new();
     private readonly HashSet<ScratchCard> revealedCards = new();
 
@@ -41,11 +41,11 @@ public class ScratchManager : MonoBehaviour
             card.ResetScratch();
         }
     }
-    public void ResetImageFullyRevealed()
-    {
-        imageFullyRevealed = false;
-        Debug.Log($"重置imageFullyRevealed：{imageFullyRevealed}");
-    }
+    //public void ResetImageFullyRevealed()
+    //{
+    //    imageFullyRevealed = false;
+    //    Debug.Log($"重置imageFullyRevealed：{imageFullyRevealed}");
+    //}
     // === 可庫美學：開始預覽 ===
     public void UI_StartPreview()
     {
@@ -87,7 +87,7 @@ public class ScratchManager : MonoBehaviour
     {
         if (index >= backgroundImages.Count) index = 0;
         currentIndex = index;
-        imageFullyRevealed = false;
+        //imageFullyRevealed = false;
 
         StopAndClearAllCoroutine();
         revealedCards.Clear();
@@ -121,34 +121,47 @@ public class ScratchManager : MonoBehaviour
         while (randomIndex == currentIndex);
         return randomIndex;
     }
+    bool isForceReveal = false;
     private IEnumerator ForceRevealAfterDelay(float seconds)
     {
         yield return new WaitForSeconds(seconds);
 
-        Debug.Log(imageFullyRevealed);
+        //Debug.Log(imageFullyRevealed);
 
-        if (!imageFullyRevealed)
-        {
-            // 強制把所有卡揭露
-            foreach (var card in scratchCards)
-            {
-                card.ShowFullImage();
-                revealedCards.Add(card);
-            }
+        //if (!imageFullyRevealed)
+        //{
+        //    ForceReveal();
+        //}
+        isForceReveal = true;
+        //yield return null;
+    }
+    private void ForceReveal()
+    {
+        //強制把所有卡揭露
+        //foreach (var card in scratchCards)
+        //{
+        //    card.ShowFullImage();
+        //    revealedCards.Add(card);
+        //}
 
-            imageFullyRevealed = true;
+        //imageFullyRevealed = true;
+        StopAndClearAllCoroutine();
 
-            StopAndClearAllCoroutine();
+        if (flow != null) flow.Sys_OnScratchRevealComplete();
+        //if (revealedCards.Count >= scratchCards.Count)
+        //{
+        //    StopAndClearAllCoroutine();
 
-            if (flow != null)
-                flow.Sys_OnScratchRevealComplete();
-            Debug.Log("強制揭露底圖");
-        }
+        //    if (flow != null) flow.Sys_OnScratchRevealComplete();
+        //}
+        Debug.Log("強制揭露底圖");
     }
     private void Update()
     {
-        if (imageFullyRevealed) return;
+        //if (!imageFullyRevealed)
+        //{
 
+        //}
         foreach (var card in scratchCards)
         {
             if (!revealedCards.Contains(card) && card.GetClearedRatio() >= clearThreshold)
@@ -156,28 +169,43 @@ public class ScratchManager : MonoBehaviour
                 revealedCards.Add(card);
                 card.ShowFullImage();
                 // 串接 PanelFlow：當所有卡都達標，立即通知流程切換
-                if (revealedCards.Count >= scratchCards.Count && !imageFullyRevealed)
-                {
-                    imageFullyRevealed = true;
+                //if (revealedCards.Count >= scratchCards.Count && !imageFullyRevealed)
+                //{
+                //    imageFullyRevealed = true;
 
+                //    StopAndClearAllCoroutine();
+
+                //    if (flow != null) flow.Sys_OnScratchRevealComplete();
+                //}
+                if (revealedCards.Count >= scratchCards.Count)
+                {
                     StopAndClearAllCoroutine();
 
                     if (flow != null) flow.Sys_OnScratchRevealComplete();
                 }
             }
+
+            if (isForceReveal)
+            {
+                isForceReveal = false;
+                ForceReveal();
+            }
         }
     }
     void StopAndClearAllCoroutine()
     {
-        foreach (var r in restoreRoutines)
+        if(restoreRoutines.Count > 0)
         {
-            if (r != null)
+            foreach (var r in restoreRoutines)
             {
-                Debug.Log($"停止協程：{r}");
-                StopCoroutine(r);
-            } 
+                if (r != null)
+                {
+                    Debug.Log($"停止協程：{r}");
+                    StopCoroutine(r);
+                }
+            }
+            restoreRoutines.Clear();
+            Debug.Log("清理所有運行中的Coroutine");
         }
-        restoreRoutines.Clear();
-        Debug.Log("清理所有運行中的Coroutine");
     }
 }

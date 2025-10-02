@@ -5,13 +5,13 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
+  - enabled: 1
     path: Assets/MagicCanvas/Scenes/MagicCanvas_SingleDisplay.unity
     guid: ab2961383bcb6de498e68e23328b9318
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/WebcamTest.unity
     guid: b5ccba812cb594f4e962aa21afbf91d9
   m_configObjects: {}
