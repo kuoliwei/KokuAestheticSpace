@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class HandParticleEffectSpawner : MonoBehaviour
 {
-    public GameObject particlePrefab;
+    [SerializeField] private GameObject particlePrefab;
     //public RectTransform canvasRect;
 
     //private List<GameObject> currentEffects = new List<GameObject>();

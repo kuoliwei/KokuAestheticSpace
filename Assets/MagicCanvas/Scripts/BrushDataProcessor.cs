@@ -14,6 +14,7 @@ public class BrushDataProcessor : MonoBehaviour
     [SerializeField] private RectTransform interactiveUIRectTransform; // [NEW]
     [SerializeField] HandParticleEffectSpawner spawner;
     public bool isRevealing = false;
+    [SerializeField] private AudioSource paintingAudioSource;
     void Start() // 或 Awake()
     {
         // [NEW] 統一指派給兩個元件
@@ -52,6 +53,7 @@ public class BrushDataProcessor : MonoBehaviour
                 if (!card.isRevealing && card.gameObject.activeSelf)
                 {
                     card.EraseAtNormalizedUV(uv); // 每一個卡片都處理這個刮除點
+                    //paintingAudioSource.volume = 1;
                 }
             }
         }
@@ -73,9 +75,15 @@ public class BrushDataProcessor : MonoBehaviour
             //else
             //    refDotSpawner.ClearAll();
             if (uvList.Count > 0)                                  // [NEW]
-                refDotSpawner.SyncDotsToUVPositions(uvList,true, heatedUvIndex, heatedHoldTimesPercentage);       // [NEW] 直接把 UV 傳給 spawner（會用 uiRectTransform 計算）
-            else                                                   // [NEW]
+            {
+
+                refDotSpawner.SyncDotsToUVPositions(uvList, true, heatedUvIndex, heatedHoldTimesPercentage);       // [NEW] 直接把 UV 傳給 spawner（會用 uiRectTransform 計算）
+            }
+            else
+            {
                 refDotSpawner.ClearAll();
+                //paintingAudioSource.volume = 0;
+            }
         }
 
         //// [新增] 控制多個特效物件

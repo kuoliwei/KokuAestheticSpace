@@ -14,7 +14,7 @@ public class HandReferenceDotSpawner : MonoBehaviour
     [Header("參考紅點素材")]
     [SerializeField] private Sprite hand;
     [SerializeField] private Sprite translucentRound;
-    
+    [SerializeField] private AudioSource paintingAudioSource;
     public enum dotSprites { hand, translucentRound };
 
     [Header("自動清空")]
@@ -68,9 +68,13 @@ public class HandReferenceDotSpawner : MonoBehaviour
         {
             case dotSprites.hand:
                 dotPrefab.sprite = hand;
+                dotPrefab.rectTransform.sizeDelta = new Vector3(250, 250, 1);
+                if (paintingAudioSource.isPlaying) paintingAudioSource.Stop();
                 break;
             case dotSprites.translucentRound:
                 dotPrefab.sprite = translucentRound;
+                dotPrefab.rectTransform.sizeDelta = new Vector3(500, 500, 1);
+                if (!paintingAudioSource.isPlaying) paintingAudioSource.Play();
                 break;
         }
         ClearAll();

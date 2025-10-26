@@ -36,10 +36,10 @@ public class WebSocketConnectUI : MonoBehaviour
     {
         //Debug.Log("©I¥sTryConnect()");
         message.text = "";
-        //string ip = this.ip;
-        //string portText = this.port;
-        string ip = ipInput.text;
-        string portText = portInput.text;
+        string ip = this.ip;
+        string portText = this.port;
+        //string ip = ipInput.text;
+        //string portText = portInput.text;
 
         if (!System.Net.IPAddress.TryParse(ip, out _))
         {

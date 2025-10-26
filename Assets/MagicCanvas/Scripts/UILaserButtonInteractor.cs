@@ -28,6 +28,9 @@ public class UILaserButtonInteractor : MonoBehaviour
     // [NEW] UV 對應的目標 UI（UV 的 0..1 範圍會映到這塊 RectTransform）
     [Header("UV 對應設定")]
     private RectTransform uiRectTransform; // [NEW]
+
+    [Header("按鍵音效")]
+    [SerializeField] private AudioSource clickSoundAudioSource;
     public void SetTargetRectTransform(RectTransform rt) // [NEW]
     {
         uiRectTransform = rt; // [NEW]
@@ -79,6 +82,7 @@ public class UILaserButtonInteractor : MonoBehaviour
             if (btn.transform.Find("After") != null)
             {
                 btn.transform.Find("After").gameObject.SetActive(true);
+                clickSoundAudioSource.Play();
             }
 
             if (!holdTimers.ContainsKey(btn)) holdTimers[btn] = 0f;
@@ -88,6 +92,7 @@ public class UILaserButtonInteractor : MonoBehaviour
             {
                 holdTimers[btn] = 0f; // 重置避免連點
                 btn.onClick?.Invoke();
+
                 if (btn.transform.Find("After") != null)
                 {
                     btn.transform.Find("After").gameObject.SetActive(false);
@@ -213,9 +218,10 @@ public class UILaserButtonInteractor : MonoBehaviour
                 if (btn != null && btn.interactable && btn.gameObject.activeInHierarchy)
                 {
                     hitThisFrame.Add(btn);
-                    if (btn.transform.Find("After") != null)
+                    if (btn.transform.Find("After") != null && !btn.transform.Find("After").gameObject.activeSelf)
                     {
                         btn.transform.Find("After").gameObject.SetActive(true);
+                        clickSoundAudioSource.Play();
                     }
 
                     // 第一次被擊中 → 建檔 firstHitAt / firstHitUvIndex
@@ -280,6 +286,7 @@ public class UILaserButtonInteractor : MonoBehaviour
             if (autoClickOnHit && bestHeld >= holdTimeToClick)
             {
                 leader.onClick?.Invoke();
+                clickSoundAudioSource.Play();
 
                 foreach(Button button in firstHitAt.Keys)
                 {

@@ -166,8 +166,8 @@ public class ScratchManager : MonoBehaviour
         {
             if (!revealedCards.Contains(card) && card.GetClearedRatio() >= clearThreshold)
             {
-                revealedCards.Add(card);
-                card.ShowFullImage();
+                //revealedCards.Add(card);
+                //card.ShowFullImage();
                 // 串接 PanelFlow：當所有卡都達標，立即通知流程切換
                 //if (revealedCards.Count >= scratchCards.Count && !imageFullyRevealed)
                 //{

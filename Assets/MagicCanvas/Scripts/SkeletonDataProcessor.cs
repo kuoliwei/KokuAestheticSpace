@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class SkeletonDataProcessor : MonoBehaviour
@@ -32,6 +33,7 @@ public class SkeletonDataProcessor : MonoBehaviour
     [SerializeField] private LayerMask canvasLayer; // 指定 Quad (畫布) 的 layer
     [SerializeField] private float rayLength = 2f;  // Ray 最長距離
     [SerializeField] private BrushDataProcessor brushProcessor; // 連結 BrushDataProcessor
+    [SerializeField] private AudioSource paintingAudioSource;
 
     // ===========================
     // [NEW] Quad 分類設定
@@ -55,7 +57,10 @@ public class SkeletonDataProcessor : MonoBehaviour
     private int _recvFramesThisSec = 0;      // 本秒收到的總幀數（含無人）
     private int _validFramesThisSec = 0;     // 本秒「有效（有人）」的幀數
     private float _fpsWindowStart = 0f;      // 本秒起始時間
-    // ----- 內部狀態 -----
+                                             // ----- 內部狀態 -----
+
+    [Header("生成Trail特效")] // 生成Trail特效
+    [SerializeField] private HandTrailEffectSpawner handTrailSpawner;
     class SkeletonVisual
     {
         public int personId;
@@ -70,6 +75,9 @@ public class SkeletonDataProcessor : MonoBehaviour
     // [NEW] 用來記錄有效骨架幀間的間隔
     private float _lastValidFrameTime = -1f;         // 上一筆有效骨架時間
     private readonly List<float> _validIntervals = new List<float>(); // 本秒內所有間隔
+
+    private HandSmoother leftHandSmoother = new HandSmoother(0.2f, 0.002f);
+    private HandSmoother rightHandSmoother = new HandSmoother(0.2f, 0.002f);
     /// <summary>接收一幀骨架資料：更新/建立/刪除可視化，並（可選）列印到 Console。</summary>
     public void HandleSkeletonFrame(FrameSample frame)
     {
@@ -188,20 +196,61 @@ public class SkeletonDataProcessor : MonoBehaviour
                 // if (TryGetWristUV(vis.joints[(int)JointId.RightWrist], out var uvR))
                 //     brushList.Add(new BrushData { point = new float[] { uvR.x, uvR.y } });
 
-                // 新版（分流）
-                if (TryGetWristUV(vis.joints[(int)JointId.LeftWrist], out var uvL, out var quadL)) // [NEW]
-                {                                                                                  // [NEW]
-                    if (quadL == QuadType.Painting)                                                // [NEW]
-                        brushList.Add(new BrushData { point = new float[] { uvL.x, uvL.y } });     // [NEW]
-                    else if (quadL == QuadType.Interactive)                                        // [NEW]
-                        effectList.Add(uvL);                                                        // [NEW]
-                }                                                                                  // [NEW]
-                if (TryGetWristUV(vis.joints[(int)JointId.RightWrist], out var uvR, out var quadR))// [NEW]
-                {                                                                                  // [NEW]
-                    if (quadR == QuadType.Painting)                                                // [NEW]
-                        brushList.Add(new BrushData { point = new float[] { uvR.x, uvR.y } });     // [NEW]
-                    else if (quadR == QuadType.Interactive)                                        // [NEW]
-                        effectList.Add(uvR);                                                        // [NEW]
+                //// 新版（分流）
+                //if (TryGetWristUV(vis.joints[(int)JointId.LeftWrist], out var uvL, out var quadL)) // [NEW]
+                //{                                                                                  // [NEW]
+                //    if (quadL == QuadType.Painting)                                                // [NEW]
+                //        brushList.Add(new BrushData { point = new float[] { uvL.x, uvL.y } });     // [NEW]
+                //    else if (quadL == QuadType.Interactive)                                        // [NEW]
+                //        effectList.Add(uvL);                                                        // [NEW]
+                //}                                                                                  // [NEW]
+                //if (TryGetWristUV(vis.joints[(int)JointId.RightWrist], out var uvR, out var quadR))// [NEW]
+                //{                                                                                  // [NEW]
+                //    if (quadR == QuadType.Painting)                                                // [NEW]
+                //        brushList.Add(new BrushData { point = new float[] { uvR.x, uvR.y } });     // [NEW]
+                //    else if (quadR == QuadType.Interactive)                                        // [NEW]
+                //        effectList.Add(uvR);                                                        // [NEW]
+                //}
+                // 先取出左右髖關節，計算腰部高度
+                if (person.TryGet(JointId.LeftHip, out var leftHip) &&
+                    person.TryGet(JointId.RightHip, out var rightHip))
+                {
+                    //float hipY = (leftHip.y + rightHip.y) / 2f; // 腰部基準高度
+                    float hipZ = ((leftHip.z + rightHip.z) / 2f) * 1.2f;// 基準高度上調 1.2 倍
+
+                    // 取左右手腕
+                    var lw = person.joints[(int)JointId.LeftWrist];
+                    var rw = person.joints[(int)JointId.RightWrist];
+                    Debug.Log($"左手高度：{lw.z}，右手高度：{rw.z}，骨盆高度{hipZ}");
+                    // 只有手腕高於腰部才允許射線流程
+                    if (lw.z > hipZ)
+                    {
+                        if (TryGetWristUV(vis.joints[(int)JointId.LeftWrist], out var uvL, out var quadL))
+                        {
+                            uvL = leftHandSmoother.Smooth(uvL);   // 平滑處理
+                            if (quadL == QuadType.Painting)
+                                brushList.Add(new BrushData { point = new float[] { uvL.x, uvL.y } });
+                            else if (quadL == QuadType.Interactive)
+                            {
+                                handTrailSpawner.UpdateHand(p, true, uvL);
+                                //effectList.Add(uvL);
+                            }
+                        }
+                    }
+                    if (rw.z > hipZ)
+                    {
+                        if (TryGetWristUV(vis.joints[(int)JointId.RightWrist], out var uvR, out var quadR))
+                        {
+                            uvR = rightHandSmoother.Smooth(uvR);  // 平滑處理
+                            if (quadR == QuadType.Painting)
+                                brushList.Add(new BrushData { point = new float[] { uvR.x, uvR.y } });
+                            else if (quadR == QuadType.Interactive)
+                            {
+                                handTrailSpawner.UpdateHand(p, false, uvR);
+                                //effectList.Add(uvR);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -216,10 +265,17 @@ public class SkeletonDataProcessor : MonoBehaviour
         if (brushProcessor != null)
         {
             if (brushList.Count > 0)
+            {
+                paintingAudioSource.volume = 1;
                 brushProcessor.HandleBrushData(brushList);     // Painting：照舊刮除
+            }
+            else
+            {
+                paintingAudioSource.volume = 0;
+            }
 
-            if (effectList.Count > 0)
-                brushProcessor.HandleEffectUV(effectList);     // [NEW] Interactive：互動/按鈕/特效
+            //if (effectList.Count > 0)
+            //    brushProcessor.HandleEffectUV(effectList);     // [NEW] Interactive：互動/按鈕/特效
         }
 
         // 可視化完成後才計算延遲
@@ -228,7 +284,7 @@ public class SkeletonDataProcessor : MonoBehaviour
         // 時分秒用 DateTime，秒的小數部分自己拼上去
         string timeStr = $"{now:HH:mm}:{now.Second + now.Millisecond / 1000.0:F6}";
         float delay = (Time.realtimeSinceStartup - frame.recvTime) * 1000f;
-        Debug.Log($"[Latency] Frame {frame.frameIndex} 完整顯示延遲 = {delay:F1} ms"+ "\n$\"[Time] 收到時間 {timeStr}\"");
+        //Debug.Log($"[Latency] Frame {frame.frameIndex} 完整顯示延遲 = {delay:F1} ms"+ "\n$\"[Time] 收到時間 {timeStr}\"");
 
         // 4) 若開了「有人才列印」且這幀沒人，印一行提示
         if (enableConsoleLog && !anyPerson && !logOnlyWhenSomeonePresent)
@@ -321,6 +377,47 @@ public class SkeletonDataProcessor : MonoBehaviour
         Debug.DrawRay(ray.origin, ray.direction * rayLength, Color.red, 0.1f);
         return false;
     }
+    // ============================================================
+    // 命中偵測 (雙方向) - 同時射出 +Z 與 -X 兩條射線
+    // 若兩條皆命中會輸出兩組 UV
+    // ============================================================
+    private int TryGetWristUVs(Transform wrist, List<Vector2> uvs, List<QuadType> quads)
+    {
+        if (wrist == null) return 0;
+
+        int hitCount = 0;
+        RaycastHit hit;
+
+        // --- 第一條：朝 +Z 方向 ---
+        Ray rayZ = new Ray(wrist.position, wrist.forward);
+        if (Physics.Raycast(rayZ, out hit, rayLength, canvasLayer))
+        {
+            uvs.Add(hit.textureCoord);
+            quads.Add(ClassifyQuad(hit.collider));
+            Debug.DrawRay(rayZ.origin, rayZ.direction * hit.distance, Color.cyan, 0.1f);
+            hitCount++;
+        }
+
+        // --- 第二條：朝 -X 方向 ---
+        Ray rayX = new Ray(wrist.position, -wrist.right);
+        if (Physics.Raycast(rayX, out hit, rayLength, canvasLayer))
+        {
+            uvs.Add(hit.textureCoord);
+            quads.Add(ClassifyQuad(hit.collider));
+            Debug.DrawRay(rayX.origin, rayX.direction * hit.distance, Color.green, 0.1f);
+            hitCount++;
+        }
+
+        // --- 若兩者都未命中 ---
+        if (hitCount == 0)
+        {
+            Debug.DrawRay(wrist.position, wrist.forward * rayLength, Color.red, 0.1f);
+            Debug.DrawRay(wrist.position, -wrist.right * rayLength, Color.red, 0.1f);
+        }
+
+        return hitCount;
+    }
+
 
     // [NEW] 用 Tag / 指定 Collider / 名稱三種方式做分類（任一命中即可）
     private QuadType ClassifyQuad(Collider col) // [NEW]
@@ -365,5 +462,38 @@ public class SkeletonDataProcessor : MonoBehaviour
         {
             Debug.DrawRay(ray.origin, ray.direction * rayLength, Color.red, 0.1f);
         }
+    }
+}
+// 專門處理手部座標的平滑器
+public class HandSmoother
+{
+    private Vector2 lastSmoothed;
+    private bool hasValue = false;
+
+    private readonly float smoothFactor;
+    private readonly float minThreshold;
+
+    public HandSmoother(float smoothFactor = 0.2f, float minThreshold = 0.002f)
+    {
+        this.smoothFactor = smoothFactor;
+        this.minThreshold = minThreshold;
+    }
+
+    public Vector2 Smooth(Vector2 current)
+    {
+        if (!hasValue)
+        {
+            lastSmoothed = current;
+            hasValue = true;
+            return current;
+        }
+
+        // 如果變動太小，忽略抖動
+        if (Vector2.Distance(lastSmoothed, current) < minThreshold)
+            return lastSmoothed;
+
+        // 指數平滑 (EMA)
+        lastSmoothed = Vector2.Lerp(lastSmoothed, current, smoothFactor);
+        return lastSmoothed;
     }
 }
